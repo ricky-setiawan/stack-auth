@@ -7,29 +7,15 @@ export const sessionsCrudServerCreateSchema = yupObject({
   is_impersonation: yupBoolean().default(false),
 }).defined();
 
-export const sessionsCrudServerReadSchema = yupObject({
-  id: yupString().uuid().defined(),
-  user_id: yupString().uuid().defined(),
-  created_at: yupNumber().defined(),
-  expires_at: yupNumber().nullable().defined(),
-  is_impersonation: yupBoolean().defined(),
-}).defined();
-
 export const sessionsCrudServerDeleteSchema = yupMixed();
 
 export const sessionsCrud = createCrud({
   serverCreateSchema: sessionsCrudServerCreateSchema,
-  serverReadSchema: sessionsCrudServerReadSchema,
   serverDeleteSchema: sessionsCrudServerDeleteSchema,
   docs: {
     serverCreate: {
       summary: "Create session",
       description: "Create a new session for a given user. This will return a refresh token that can be used to impersonate the user.",
-      tags: ["Sessions"],
-    },
-    serverRead: {
-      summary: "Get session",
-      description: "Get a session by ID.",
       tags: ["Sessions"],
     },
     serverList: {
