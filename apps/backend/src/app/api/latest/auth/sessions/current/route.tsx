@@ -31,12 +31,16 @@ export const DELETE = createSmartRouteHandler({
     const refreshToken = refreshTokenHeaders[0];
 
     try {
-      await prismaClient.projectUserRefreshToken.deleteMany({
+      const result = await prismaClient.projectUserRefreshToken.deleteMany({
         where: {
           tenancyId: tenancy.id,
           refreshToken,
         },
       });
+      // If no records were deleted, throw the same error as before
+      if (result.count === 0) {
+        throw new KnownErrors.RefreshTokenNotFoundOrExpired();
+      }
     } catch (e) {
       // TODO make this less hacky, use a transaction to delete-if-exists instead of try-catch
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2025") {
