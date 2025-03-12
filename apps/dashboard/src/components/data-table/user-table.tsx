@@ -53,7 +53,7 @@ function UserActions({ row }: { row: Row<ExtendedServerUser> }) {
             onClick: async () => {
               const expiresInMillis = 1000 * 60 * 60 * 2;
               const expiresAtDate = new Date(Date.now() + expiresInMillis);
-              const session = await row.original.createSession({ expiresInMillis });
+              const session = await row.original.createSession({ expiresInMillis, isImpersonation: true });
               const tokens = await session.getTokens();
               setImpersonateSnippet(deindent`
                 document.cookie = 'stack-refresh-${app.projectId}=${tokens.refreshToken}; expires=${expiresAtDate.toUTCString()}; path=/'; 
