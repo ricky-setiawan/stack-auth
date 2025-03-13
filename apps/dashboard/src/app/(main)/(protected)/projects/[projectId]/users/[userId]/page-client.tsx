@@ -348,6 +348,9 @@ type ContactChannelsSectionProps = {
 
 function ContactChannelsSection({ user }: ContactChannelsSectionProps) {
   const contactChannels = user.useContactChannels();
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [impersonateSnippet, setImpersonateSnippet] = useState<string | null>(null);
+  const stackAdminApp = useAdminApp();
 
   return (
     <div>
