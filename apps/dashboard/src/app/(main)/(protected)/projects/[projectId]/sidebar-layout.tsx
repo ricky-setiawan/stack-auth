@@ -8,7 +8,6 @@ import ThemeToggle from "@/components/theme-toggle";
 import { getPublicEnvVar } from '@/lib/env';
 import { cn } from "@/lib/utils";
 import { AdminProject, UserButton, useUser } from "@stackframe/stack";
-import { EMAIL_TEMPLATES_METADATA } from "@stackframe/stack-emails/dist/utils";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -42,7 +41,6 @@ import {
 import { useTheme } from "next-themes";
 import { usePathname } from "next/navigation";
 import { Fragment, useMemo, useState } from "react";
-import { useAdminApp } from "./use-admin-app";
 
 type BreadcrumbItem = { item: React.ReactNode, href: string }
 
@@ -60,7 +58,7 @@ type Item = {
 };
 
 type Hidden = {
-  name: BreadcrumbItem[] | ((pathname: string) => BreadcrumbItem[]),
+  name: BreadcrumbItem[],
   regex: RegExp,
   type: 'hidden',
 };
@@ -85,22 +83,13 @@ const navigationItems: (Label | Item | Hidden)[] = [
     type: 'item'
   },
   {
-    name: (pathname: string) => {
-      const match = pathname.match(/^\/projects\/[^\/]+\/users\/([^\/]+)$/);
-      let item;
-      let href;
-      if (match) {
-        item = <UserBreadcrumbItem key='user-display-name' userId={match[1]} />;
-        href = `/users/${match[1]}`;
-      } else {
-        item = "Users";
-        href = "";
-      }
-      return [
-        { item: "Users", href: "/users" },
-        { item, href },
-      ];
-    },
+    name: [{
+      item: "Users",
+      href: "/users",
+    }, {
+      item: "PLACEHOLDER",
+      href: "/users/PLACEHOLDER",
+    }],
     regex: /^\/projects\/[^\/]+\/users\/[^\/]+$/,
     type: 'hidden',
   },
@@ -123,23 +112,13 @@ const navigationItems: (Label | Item | Hidden)[] = [
     type: 'item'
   },
   {
-    name: (pathname: string) => {
-      const match = pathname.match(/^\/projects\/[^\/]+\/teams\/([^\/]+)$/);
-      let item;
-      let href;
-      if (match) {
-        item = <TeamMemberBreadcrumbItem key='team-display-name' teamId={match[1]} />;
-        href = `/teams/${match[1]}`;
-      } else {
-        item = "Members";
-        href = "";
-      }
-
-      return [
-        { item: "Teams", href: "/teams" },
-        { item, href },
-      ];
-    },
+    name: [{
+      item: "Teams",
+      href: "/teams",
+    }, {
+      item: "PLACEHOLDER",
+      href: "/teams/PLACEHOLDER",
+    }],
     regex: /^\/projects\/[^\/]+\/teams\/[^\/]+$/,
     type: "hidden",
   },
@@ -183,40 +162,24 @@ const navigationItems: (Label | Item | Hidden)[] = [
     type: 'item'
   },
   {
-    name: (pathname: string) => {
-      const match = pathname.match(/^\/projects\/[^\/]+\/webhooks\/([^\/]+)$/);
-      let href;
-      if (match) {
-        href = `/teams/${match[1]}`;
-      } else {
-        href = "";
-      }
-
-      return [
-        { item: "Webhooks", href: "/webhooks" },
-        { item: "Endpoint", href },
-      ];
-    },
+    name: [{
+      item: "Webhooks",
+      href: "/webhooks",
+    }, {
+      item: "PLACEHOLDER",
+      href: "/webhooks/PLACEHOLDER",
+    }],
     regex: /^\/projects\/[^\/]+\/webhooks\/[^\/]+$/,
     type: 'hidden',
   },
   {
-    name: (pathname: string) => {
-      const match = pathname.match(/^\/projects\/[^\/]+\/emails\/templates\/([^\/]+)$/);
-      let item;
-      let href;
-      if (match && match[1] in EMAIL_TEMPLATES_METADATA) {
-        item = EMAIL_TEMPLATES_METADATA[match[1] as keyof typeof EMAIL_TEMPLATES_METADATA].label;
-        href = `/emails/templates/${match[1]}`;
-      } else {
-        item = "Templates";
-        href = "";
-      }
-      return [
-        { item: "Emails", href: "/emails" },
-        { item, href },
-      ];
-    },
+    name: [{
+      item: "Emails",
+      href: "/emails",
+    }, {
+      item: "PLACEHOLDER",
+      href: "/emails/templates/PLACEHOLDER",
+    }],
     regex: /^\/projects\/[^\/]+\/emails\/templates\/[^\/]+$/,
     type: 'hidden',
   },
@@ -235,28 +198,6 @@ const navigationItems: (Label | Item | Hidden)[] = [
     type: 'item'
   }
 ];
-
-function TeamMemberBreadcrumbItem(props: { teamId: string }) {
-  const stackAdminApp = useAdminApp();
-  const team = stackAdminApp.useTeam(props.teamId);
-
-  if (!team) {
-    return null;
-  } else {
-    return team.displayName;
-  }
-}
-
-function UserBreadcrumbItem(props: { userId: string }) {
-  const stackAdminApp = useAdminApp();
-  const user = stackAdminApp.useUser(props.userId);
-
-  if (!user) {
-    return null;
-  } else {
-    return user.displayName ?? user.primaryEmail ?? user.id;
-  }
-}
 
 function NavItem({ item, href, onClick }: { item: Item, href: string, onClick?: () => void}) {
   const pathname = usePathname();
@@ -353,8 +294,6 @@ function HeaderBreadcrumb({
       results = [];
     } else if (name instanceof Array) {
       results = name;
-    } else if (typeof name === 'function') {
-      results = name(pathname);
     } else {
       results = [{
         item: name,
