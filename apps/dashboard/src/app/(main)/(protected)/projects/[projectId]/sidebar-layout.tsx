@@ -42,15 +42,15 @@ import { useTheme } from "next-themes";
 import { usePathname } from "next/navigation";
 import { Fragment, useMemo, useState } from "react";
 
-type BreadcrumbItem = { item: React.ReactNode, href: string }
+type BreadcrumbItem = { item: string, href: string }
 
 type Label = {
-  name: React.ReactNode,
+  name: string,
   type: 'label',
 };
 
 type Item = {
-  name: React.ReactNode,
+  name: string,
   href: string,
   icon: LucideIcon,
   regex: RegExp,
