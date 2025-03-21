@@ -353,6 +353,7 @@ export class _StackServerAppImplIncomplete<HasTokenStore extends boolean, Projec
           ...data,
         }));
         await app._serverTeamsCache.refresh([undefined]);
+        await app._updateServerUser(crud.id, { selectedTeamId: team.id });
         return app._serverTeamFromCrud(team);
       },
       leaveTeam: async (team: Team) => {
