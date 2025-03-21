@@ -7,7 +7,7 @@ import { TeamPermissionDefinitionsCrud, TeamPermissionsCrud } from "@stackframe/
 import { TeamsCrud } from "@stackframe/stack-shared/dist/interface/crud/teams";
 import { UsersCrud } from "@stackframe/stack-shared/dist/interface/crud/users";
 import { InternalSession } from "@stackframe/stack-shared/dist/sessions";
-import { StackAssertionError } from "@stackframe/stack-shared/dist/utils/errors";
+import { StackAssertionError, throwErr } from "@stackframe/stack-shared/dist/utils/errors";
 import { ProviderType } from "@stackframe/stack-shared/dist/utils/oauth";
 import { runAsynchronously } from "@stackframe/stack-shared/dist/utils/promises";
 import { suspend } from "@stackframe/stack-shared/dist/utils/react";
@@ -622,6 +622,7 @@ export class _StackServerAppImplIncomplete<HasTokenStore extends boolean, Projec
 
   async getUser(options: GetUserOptions<HasTokenStore> & { or: 'redirect' }): Promise<ProjectCurrentServerUser<ProjectId>>;
   async getUser(options: GetUserOptions<HasTokenStore> & { or: 'throw' }): Promise<ProjectCurrentServerUser<ProjectId>>;
+  async getUser(options: GetUserOptions<HasTokenStore> & { or: 'anonymous' }): Promise<ProjectCurrentServerUser<ProjectId>>;
   async getUser(options?: GetUserOptions<HasTokenStore>): Promise<ProjectCurrentServerUser<ProjectId> | null>;
   async getUser(id: string): Promise<ServerUser | null>;
   async getUser(options: { apiKey: string }): Promise<ServerUser | null>;
@@ -634,7 +635,10 @@ export class _StackServerAppImplIncomplete<HasTokenStore extends boolean, Projec
       // TODO this code is duplicated from the client app; fix that
       this._ensurePersistentTokenStore(options?.tokenStore);
       const session = await this._getSession(options?.tokenStore);
-      const crud = Result.orThrow(await this._currentServerUserCache.getOrWait([session], "write-only"));
+      let crud = Result.orThrow(await this._currentServerUserCache.getOrWait([session], "write-only"));
+      if (crud?.is_anonymous && options?.or !== "anonymous" && options?.or !== "anonymous-if-exists") {
+        crud = null;
+      }
 
       if (crud === null) {
         switch (options?.or) {
@@ -645,7 +649,13 @@ export class _StackServerAppImplIncomplete<HasTokenStore extends boolean, Projec
           case 'throw': {
             throw new Error("User is not signed in but getUser was called with { or: 'throw' }");
           }
-          default: {
+          case 'anonymous': {
+            const tokens = await this._signUpAnonymously();
+            return await this.getUser({ tokenStore: tokens }) ?? throwErr("Something went wrong while signing up anonymously");
+          }
+          case undefined:
+          case "anonymous-if-exists":
+          case "return-null": {
             return null;
           }
         }
@@ -676,6 +686,7 @@ export class _StackServerAppImplIncomplete<HasTokenStore extends boolean, Projec
   // IF_PLATFORM react-like
   useUser(options: GetUserOptions<HasTokenStore> & { or: 'redirect' }): ProjectCurrentServerUser<ProjectId>;
   useUser(options: GetUserOptions<HasTokenStore> & { or: 'throw' }): ProjectCurrentServerUser<ProjectId>;
+  useUser(options: GetUserOptions<HasTokenStore> & { or: 'anonymous' }): ProjectCurrentServerUser<ProjectId>;
   useUser(options?: GetUserOptions<HasTokenStore>): ProjectCurrentServerUser<ProjectId> | null;
   useUser(id: string): ServerUser | null;
   useUser(options: { apiKey: string }): ServerUser | null;
@@ -690,7 +701,10 @@ export class _StackServerAppImplIncomplete<HasTokenStore extends boolean, Projec
       this._ensurePersistentTokenStore(options?.tokenStore);
 
       const session = this._useSession(options?.tokenStore);
-      const crud = useAsyncCache(this._currentServerUserCache, [session], "useUser()");
+      let crud = useAsyncCache(this._currentServerUserCache, [session] as const, "useUser()");
+      if (crud?.is_anonymous && options?.or !== "anonymous" && options?.or !== "anonymous-if-exists") {
+        crud = null;
+      }
 
       if (crud === null) {
         switch (options?.or) {
@@ -702,7 +716,20 @@ export class _StackServerAppImplIncomplete<HasTokenStore extends boolean, Projec
           case 'throw': {
             throw new Error("User is not signed in but useUser was called with { or: 'throw' }");
           }
+          case 'anonymous': {
+            // TODO we should think about the behavior when calling useUser (or getUser) in anonymous with a custom token store. signUpAnonymously always sets the current token store on app level, instead of the one passed to this function
+            // TODO we shouldn't reload & suspend here, instead we should use a promise that resolves to the new anonymous user
+            runAsynchronously(async () => {
+              await this._signUpAnonymously();
+              if (typeof window !== "undefined") {
+                window.location.reload();
+              }
+            });
+            suspend();
+            throw new StackAssertionError("suspend should never return");
+          }
           case undefined:
+          case "anonymous-if-exists":
           case "return-null": {
             // do nothing
           }

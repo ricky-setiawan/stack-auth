@@ -675,6 +675,17 @@ const PasskeyAuthenticationNotEnabled = createKnownErrorConstructor(
   () => [] as const,
 );
 
+const AnonymousAccountsNotEnabled = createKnownErrorConstructor(
+  KnownError,
+  "ANONYMOUS_ACCOUNTS_NOT_ENABLED",
+  () => [
+    400,
+    "Anonymous accounts are not enabled for this project.",
+  ] as const,
+  () => [] as const,
+);
+
+
 const EmailPasswordMismatch = createKnownErrorConstructor(
   KnownError,
   "EMAIL_PASSWORD_MISMATCH",
@@ -1288,6 +1299,7 @@ export const KnownErrors = {
   SignUpNotEnabled,
   PasswordAuthenticationNotEnabled,
   PasskeyAuthenticationNotEnabled,
+  AnonymousAccountsNotEnabled,
   EmailPasswordMismatch,
   RedirectUrlNotWhitelisted,
   PasswordRequirementsNotMet,
