@@ -1,6 +1,6 @@
 import { wait } from "@stackframe/stack-shared/dist/utils/promises";
 import { it } from "../../../../helpers";
-import { ApiKey, Auth, InternalProjectKeys, Project, Webhook, backendContext, niceBackendFetch } from "../../../backend-helpers";
+import { Auth, InternalApiKey, InternalProjectKeys, Project, Webhook, backendContext, niceBackendFetch } from "../../../backend-helpers";
 
 it("is not allowed to list permissions from the other users on the client", async ({ expect }) => {
   await Auth.Otp.signIn();
@@ -73,7 +73,7 @@ it("can create a new permission and grant it to a user on the server", async ({ 
     },
   });
 
-  await ApiKey.createAndSetProjectKeys(adminAccessToken);
+  await InternalApiKey.createAndSetProjectKeys(adminAccessToken);
 
   const { userId } = await Auth.Password.signUpWithEmail({ password: 'test1234' });
 
@@ -163,7 +163,7 @@ it("can customize default user permissions", async ({ expect }) => {
     },
   });
 
-  await ApiKey.createAndSetProjectKeys(adminAccessToken);
+  await InternalApiKey.createAndSetProjectKeys(adminAccessToken);
 
   expect(response2).toMatchInlineSnapshot(`
     NiceResponse {
