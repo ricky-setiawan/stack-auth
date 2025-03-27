@@ -45,7 +45,6 @@ it("should be able to provision a new project if neon client details are correct
         "config": {
           "allow_localhost": true,
           "allow_team_api_keys": false,
-          "allow_tenancy_api_keys": false,
           "allow_user_api_keys": false,
           "client_team_creation_enabled": false,
           "client_user_deletion_enabled": false,

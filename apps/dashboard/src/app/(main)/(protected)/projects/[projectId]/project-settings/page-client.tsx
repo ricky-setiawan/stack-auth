@@ -79,7 +79,7 @@ export default function PageClient() {
           }}
         />
         <Typography variant="secondary" type="footnote">
-          Enable to allow users to create API keys for their accounts. Enable user-api-keys backend routes.
+          Enable to allow users to create API keys for their accounts. Enables user-api-keys backend routes.
         </Typography>
 
         <SettingSwitch
@@ -94,7 +94,7 @@ export default function PageClient() {
           }}
         />
         <Typography variant="secondary" type="footnote">
-          Enable to allow users to create API keys for their teams. Enable team-api-keys backend routes.
+          Enable to allow users to create API keys for their teams. Enables team-api-keys backend routes.
         </Typography>
 
 
