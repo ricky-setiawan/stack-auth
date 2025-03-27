@@ -25,7 +25,7 @@ import { SidebarLayout } from '../components/elements/sidebar-layout';
 import { UserAvatar } from '../components/elements/user-avatar';
 import { ProfileImageEditor } from "../components/profile-image-editor";
 import { TeamIcon } from '../components/team-icon';
-import { BaseApiKeyFirstView } from "../lib/stack-app/api-keys";
+import { ApiKey, ApiKeyCreationOptions, TeamApiKeyFirstView } from "../lib/stack-app/api-keys";
 import { ActiveSession } from "../lib/stack-app/users";
 import { useTranslation } from "../lib/translations";
 
@@ -182,7 +182,10 @@ export function ApiKeysPage() {
   const apiKeys = user.useApiKeys();
 
   const [isNewApiKeyDialogOpen, setIsNewApiKeyDialogOpen] = useState(false);
-  const [returnedApiKey, setReturnedApiKey] = useState<BaseApiKeyFirstView | null>(null);
+  const [returnedApiKey, setReturnedApiKey] = useState<ApiKey<"user", true>   | null>(null);
+
+  const CreateDialog = CreateApiKeyDialog<"user">;
+  const ShowDialog = ShowApiKeyDialog<"user">;
 
   return (
     <PageLayout>
@@ -192,17 +195,17 @@ export function ApiKeysPage() {
 
       <ApiKeyTable apiKeys={apiKeys} />
 
-      <CreateApiKeyDialog
+      <CreateDialog
         open={isNewApiKeyDialogOpen}
         onOpenChange={setIsNewApiKeyDialogOpen}
         onKeyCreated={setReturnedApiKey}
-        createApiKey={async (data) => {
+        createApiKey={async (data: ApiKeyCreationOptions<"user">) => {
           const apiKey = await user.createApiKey(data);
           return apiKey;
         }}
       />
-      <ShowApiKeyDialog
-        apiKey={returnedApiKey || undefined}
+      <ShowDialog
+        apiKey={returnedApiKey}
         onClose={() => setReturnedApiKey(null)}
       />
 
@@ -216,7 +219,7 @@ export function TeamApiKeysSection(props: { team: Team }) {
   const { t } = useTranslation();
 
   const [isNewApiKeyDialogOpen, setIsNewApiKeyDialogOpen] = useState(false);
-  const [returnedApiKey, setReturnedApiKey] = useState<BaseApiKeyFirstView | null>(null);
+  const [returnedApiKey, setReturnedApiKey] = useState<TeamApiKeyFirstView | null>(null);
 
   const user = useUser({ or: 'redirect' });
   const team = user.useTeam(props.team.id);
@@ -233,6 +236,9 @@ export function TeamApiKeysSection(props: { team: Team }) {
   // Conditional hook ok?
   const apiKeys = team.useApiKeys();
 
+  const CreateDialog = CreateApiKeyDialog<"team">;
+  const ShowDialog = ShowApiKeyDialog<"team">;
+
 
   return (
     <>
@@ -246,7 +252,7 @@ export function TeamApiKeysSection(props: { team: Team }) {
       </Section>
       <ApiKeyTable apiKeys={apiKeys} />
 
-      <CreateApiKeyDialog
+      <CreateDialog
         open={isNewApiKeyDialogOpen}
         onOpenChange={setIsNewApiKeyDialogOpen}
         onKeyCreated={setReturnedApiKey}
@@ -255,8 +261,8 @@ export function TeamApiKeysSection(props: { team: Team }) {
           return apiKey;
         }}
       />
-      <ShowApiKeyDialog
-        apiKey={returnedApiKey || undefined}
+      <ShowDialog
+        apiKey={returnedApiKey}
         onClose={() => setReturnedApiKey(null)}
       />
     </>
