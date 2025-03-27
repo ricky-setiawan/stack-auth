@@ -229,7 +229,7 @@ model Permission {
 
   isDefaultTeamCreatorPermission Boolean @default(false)
   isDefaultTeamMemberPermission  Boolean @default(false)
-  isDefaultProjectPermission Boolean @default(false)
+  isDefaultProjectPermission     Boolean @default(false)
 
   @@unique([projectConfigId, queryableId])
   @@unique([tenancyId, teamId, queryableId])
