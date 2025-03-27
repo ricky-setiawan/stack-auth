@@ -2,9 +2,14 @@
 ALTER TYPE "TeamSystemPermission" ADD VALUE 'MANAGE_API_KEYS';
 
 -- AlterTable
+<<<<<<<< HEAD:apps/backend/prisma/migrations/20250326032040_project_api_keys/migration.sql
 ALTER TABLE "ProjectConfig" ADD COLUMN     "allowTeamAPIKeys" BOOLEAN NOT NULL DEFAULT false,
 ADD COLUMN     "allowTenancyAPIKeys" BOOLEAN NOT NULL DEFAULT false,
 ADD COLUMN     "allowUserAPIKeys" BOOLEAN NOT NULL DEFAULT false;
+========
+ALTER TABLE "ProjectConfig" ADD COLUMN     "allowTeamApiKeys" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "allowUserApiKeys" BOOLEAN NOT NULL DEFAULT false;
+>>>>>>>> ce4866ef (remove tennancy api key stuff):apps/backend/prisma/migrations/20250327193357_api_keys/migration.sql
 
 -- CreateTable
 CREATE TABLE "ProjectApiKey" (

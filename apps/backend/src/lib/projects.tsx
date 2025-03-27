@@ -130,9 +130,8 @@ export function projectPrismaToCrud(
       create_team_on_sign_up: prisma.config.createTeamOnSignUp,
       client_team_creation_enabled: prisma.config.clientTeamCreationEnabled,
       client_user_deletion_enabled: prisma.config.clientUserDeletionEnabled,
-      allow_user_api_keys: prisma.config.allowUserAPIKeys,
-      allow_team_api_keys: prisma.config.allowTeamAPIKeys,
-      allow_tenancy_api_keys: prisma.config.allowTenancyAPIKeys,
+      allow_user_api_keys: prisma.config.allowUserApiKeys,
+      allow_team_api_keys: prisma.config.allowTeamApiKeys,
       domains: prisma.config.domains
         .sort((a: any, b: any) => a.createdAt.getTime() - b.createdAt.getTime())
         .map((domain) => ({
@@ -427,9 +426,8 @@ export function getProjectQuery(projectId: string): RawQuery<ProjectsCrud["Admin
           create_team_on_sign_up: row.ProjectConfig.createTeamOnSignUp,
           client_team_creation_enabled: row.ProjectConfig.clientTeamCreationEnabled,
           client_user_deletion_enabled: row.ProjectConfig.clientUserDeletionEnabled,
-          allow_user_api_keys: row.ProjectConfig.allowUserAPIKeys,
-          allow_team_api_keys: row.ProjectConfig.allowTeamAPIKeys,
-          allow_tenancy_api_keys: row.ProjectConfig.allowTenancyAPIKeys,
+          allow_user_api_keys: row.ProjectConfig.allowUserApiKeys,
+          allow_team_api_keys: row.ProjectConfig.allowTeamApiKeys,
           domains: row.ProjectConfig.Domains
             .sort((a: any, b: any) => new Date(a.createdAt + "Z").getTime() - new Date(b.createdAt + "Z").getTime())
             .map((domain: any) => ({
@@ -523,9 +521,8 @@ export async function createProject(ownerIds: string[], data: InternalProjectsCr
             createTeamOnSignUp: data.config?.create_team_on_sign_up ?? false,
             clientTeamCreationEnabled: data.config?.client_team_creation_enabled ?? false,
             clientUserDeletionEnabled: data.config?.client_user_deletion_enabled ?? false,
-            allowUserAPIKeys: data.config?.allow_user_api_keys ?? false,
-            allowTeamAPIKeys: data.config?.allow_team_api_keys ?? false,
-            allowTenancyAPIKeys: data.config?.allow_tenancy_api_keys ?? false,
+            allowUserApiKeys: data.config?.allow_user_api_keys ?? false,
+            allowTeamApiKeys: data.config?.allow_team_api_keys ?? false,
             oauthAccountMergeStrategy: data.config?.oauth_account_merge_strategy ? typedToUppercase(data.config.oauth_account_merge_strategy): 'LINK_METHOD',
             domains: data.config?.domains ? {
               create: data.config.domains.map(item => ({

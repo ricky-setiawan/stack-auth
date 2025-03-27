@@ -82,7 +82,7 @@ export function AccountSettings(props: {
                 <ActiveSessionsPage/>
               </Suspense>,
             },
-            ...(project.config.allowUserAPIKeys ? [{
+            ...(project.config.allowUserApiKeys ? [{
               title: t('API Keys'),
               type: 'item',
               id: 'api-keys',

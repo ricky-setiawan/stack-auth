@@ -1,10 +1,10 @@
 import { KnownErrors, StackServerInterface } from "@stackframe/stack-shared";
 import { ContactChannelsCrud } from "@stackframe/stack-shared/dist/interface/crud/contact-channels";
 import { TeamApiKeysCrud, UserApiKeysCrud, teamApiKeysCreateOutputSchema, userApiKeysCreateOutputSchema } from "@stackframe/stack-shared/dist/interface/crud/project-api-keys";
+import { ProjectPermissionDefinitionsCrud, ProjectPermissionsCrud } from "@stackframe/stack-shared/dist/interface/crud/project-permissions";
 import { TeamInvitationCrud } from "@stackframe/stack-shared/dist/interface/crud/team-invitation";
 import { TeamMemberProfilesCrud } from "@stackframe/stack-shared/dist/interface/crud/team-member-profiles";
 import { TeamPermissionDefinitionsCrud, TeamPermissionsCrud } from "@stackframe/stack-shared/dist/interface/crud/team-permissions";
-import { ProjectPermissionDefinitionsCrud, ProjectPermissionsCrud } from "@stackframe/stack-shared/dist/interface/crud/project-permissions";
 import { TeamsCrud } from "@stackframe/stack-shared/dist/interface/crud/teams";
 import { UsersCrud } from "@stackframe/stack-shared/dist/interface/crud/users";
 import { InternalSession } from "@stackframe/stack-shared/dist/sessions";
@@ -19,7 +19,7 @@ import { constructRedirectUrl } from "../../../../utils/url";
 import { GetUserOptions, HandlerUrls, OAuthScopesOnSignIn, TokenStoreInit } from "../../common";
 import { OAuthConnection } from "../../connected-accounts";
 import { ServerContactChannel, ServerContactChannelCreateOptions, ServerContactChannelUpdateOptions, serverContactChannelCreateOptionsToCrud, serverContactChannelUpdateOptionsToCrud } from "../../contact-channels";
-import { AdminTeamPermission, AdminTeamPermissionDefinition, AdminProjectPermissionDefinition } from "../../permissions";
+import { AdminProjectPermissionDefinition, AdminTeamPermission, AdminTeamPermissionDefinition } from "../../permissions";
 import { EditableTeamMemberProfile, ServerListUsersOptions, ServerTeam, ServerTeamCreateOptions, ServerTeamUpdateOptions, ServerTeamUser, Team, TeamInvitation, serverTeamCreateOptionsToCrud, serverTeamUpdateOptionsToCrud } from "../../teams";
 import { ProjectCurrentServerUser, ServerUser, ServerUserCreateOptions, ServerUserUpdateOptions, serverUserCreateOptionsToCrud, serverUserUpdateOptionsToCrud } from "../../users";
 import { StackServerAppConstructorOptions } from "../interfaces/server-app";
@@ -695,7 +695,7 @@ export class _StackServerAppImplIncomplete<HasTokenStore extends boolean, Projec
           }
           case 'anonymous': {
             const tokens = await this._signUpAnonymously();
-            return await this.getUser({ tokenStore: tokens, or: "anonymous-if-exists" }) ?? throwErr("Something went wrong while signing up anonymously");
+            return (await this.getUser({ tokenStore: tokens, or: "anonymous-if-exists" })) ?? throwErr("Something went wrong while signing up anonymously");
           }
           case undefined:
           case "anonymous-if-exists":

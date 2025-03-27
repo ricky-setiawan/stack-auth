@@ -55,9 +55,8 @@ model ProjectConfig {
   authMethodConfigs                  AuthMethodConfig[]
   connectedAccountConfigs            ConnectedAccountConfig[]
   oauthAccountMergeStrategy          OAuthAccountMergeStrategy @default(LINK_METHOD)
-  allowUserAPIKeys                   Boolean                   @default(false)
+  allowUserApiKeys                   Boolean                   @default(false)
   allowTeamApiKeys                   Boolean                   @default(false)
-  allowTenancyApiKeys                Boolean                   @default(false)
 }
 
 enum OAuthAccountMergeStrategy {

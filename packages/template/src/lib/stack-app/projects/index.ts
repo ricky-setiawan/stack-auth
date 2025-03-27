@@ -83,9 +83,8 @@ export function adminProjectUpdateOptionsToCrud(options: AdminProjectUpdateOptio
       team_member_default_permissions: options.config?.teamMemberDefaultPermissions,
       user_default_permissions: options.config?.userDefaultPermissions,
       oauth_account_merge_strategy: options.config?.oauthAccountMergeStrategy,
-      allow_user_api_keys: options.config?.allowUserAPIKeys,
-      allow_team_api_keys: options.config?.allowTeamAPIKeys,
-      allow_tenancy_api_keys: options.config?.allowTenancyAPIKeys,
+      allow_user_api_keys: options.config?.allowUserApiKeys,
+      allow_team_api_keys: options.config?.allowTeamApiKeys,
     },
   };
 }

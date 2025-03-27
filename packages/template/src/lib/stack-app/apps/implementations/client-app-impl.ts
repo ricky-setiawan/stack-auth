@@ -40,7 +40,6 @@ import { _StackAdminAppImplIncomplete } from "./admin-app-impl";
 import { TokenObject, clientVersion, createCache, createCacheBySession, createEmptyTokenStore, getBaseUrl, getDefaultExtraRequestHeaders, getDefaultProjectId, getDefaultPublishableClientKey, getUrls, useAsyncCache } from "./common";
 
 
-
 let isReactServer = false;
 // IF_PLATFORM next
 import * as sc from "@stackframe/stack-sc";
@@ -601,9 +600,8 @@ export class _StackClientAppImplIncomplete<HasTokenStore extends boolean, Projec
         passkeyEnabled: crud.config.passkey_enabled,
         clientTeamCreationEnabled: crud.config.client_team_creation_enabled,
         clientUserDeletionEnabled: crud.config.client_user_deletion_enabled,
-        allowTeamAPIKeys: /* TODO FIX */ "not implemented" as any,
-        allowUserAPIKeys: /* TODO FIX */ "not implemented" as any,
-        allowTenancyAPIKeys: /* TODO FIX */ "not implemented" as any,
+        allowTeamApiKeys: crud.config.allow_team_api_keys,
+        allowUserApiKeys: crud.config.allow_user_api_keys,
         oauthProviders: crud.config.enabled_oauth_providers.map((p) => ({
           id: p.id,
         })),
