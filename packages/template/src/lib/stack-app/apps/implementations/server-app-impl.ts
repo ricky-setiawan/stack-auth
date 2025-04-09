@@ -615,6 +615,14 @@ export class _StackServerAppImplIncomplete<HasTokenStore extends boolean, Projec
         await app._serverTeamApiKeysCache.refresh([crud.id]);
         return app._serverApiKeyFromCrud(result);
       },
+      async getItem(itemId: string) {
+        const result = await app._interface.getPaymentsItem(crud.id, itemId);
+        return result;
+      },
+      async createPurchaseUrl(pricingModelId: string, options?: {}) {
+        const result = await app._interface.createPaymentsPurchaseUrl(crud.id, pricingModelId, options);
+        return new URL(result.url);
+      },
     };
   }
 

@@ -275,6 +275,8 @@ export type ServerBaseUser = {
 
   readonly lastActiveAt: Date,
 
+  readonly selectedTeam: ServerTeam | null,
+
   readonly serverMetadata: any,
   setServerMetadata(metadata: any): Promise<void>,
   setClientReadOnlyMetadata(metadata: any): Promise<void>,

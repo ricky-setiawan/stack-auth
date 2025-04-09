@@ -628,4 +628,27 @@ export class StackServerInterface extends StackClientInterface {
       return res.error;
     }
   }
+
+  async getPaymentsItem(billableEntityId: string, itemId: string) {
+    const res = await this.sendServerRequest(
+      urlString`/payments/items/${billableEntityId}/${itemId}`,
+      {
+        method: "GET",
+      },
+      null,
+    );
+
+    return await res.json();
+  }
+
+  async createPaymentsPurchaseUrl(billableEntityId: string, pricingModelId: string, options?: {}): Promise<{ url: string }> {
+    const res = await this.sendServerRequest(
+      urlString`/payments/purchases/${billableEntityId}/${pricingModelId}/create-purchase-url`,
+      {
+        method: "POST",
+      },
+      null,
+    );
+    return await res.json();
+  }
 }

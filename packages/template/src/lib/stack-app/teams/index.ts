@@ -90,6 +90,11 @@ export type ServerTeam = {
   addUser(userId: string): Promise<void>,
   inviteUser(options: { email: string, callbackUrl?: string }): Promise<void>,
   removeUser(userId: string): Promise<void>,
+
+  // TODO useItem
+  getItem(itemId: string): Promise<{ id: string, name: string, quantity: number }>,
+
+  createPurchaseUrl(pricingModelId: string, options?: {}): Promise<URL>,
 } & Team;
 
 export type ServerListUsersOptions = {

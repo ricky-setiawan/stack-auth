@@ -99,6 +99,9 @@ importers:
 
   apps/backend:
     dependencies:
+      '@flowglad/node':
+        specifier: ^0.18.3
+        version: 0.18.3
       '@next/bundle-analyzer':
         specifier: 15.2.3
         version: 15.2.3
@@ -3104,6 +3107,9 @@ packages:
 
   '@floating-ui/utils@0.2.8':
     resolution: {integrity: sha512-kym7SodPp8/wloecOpcmSnWJsK7M0E5Wg8UcFA+uO4B9s5d0ywXOEro/8HM9x0rW+TljRzul/14UYz3TleT3ig==}
+
+  '@flowglad/node@0.18.3':
+    resolution: {integrity: sha512-s18/8UMm9HVFgO+1401SkImr8XDJAD/gFu8LSjW6BGRhXbWlKoB5zX50udBVFpRcNMsq8TSUVNRghvJQl/v21Q==}
 
   '@formatjs/ecma402-abstract@2.0.0':
     resolution: {integrity: sha512-rRqXOqdFmk7RYvj4khklyqzcfQl9vEL/usogncBHRZfZBDOwMGuSRNFl02fu5KGHXdbinju+YXyuR+Nk8xlr/g==}
@@ -13369,6 +13375,8 @@ snapshots:
   '@floating-ui/utils@0.2.2': {}
 
   '@floating-ui/utils@0.2.8': {}
+
+  '@flowglad/node@0.18.3': {}
 
   '@formatjs/ecma402-abstract@2.0.0':
     dependencies:
