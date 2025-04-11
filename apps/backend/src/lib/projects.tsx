@@ -484,7 +484,6 @@ export async function getProject(projectId: string): Promise<ProjectsCrud["Admin
           renderedConfig,
         });
       }
-      return result;
     } else {
       const newResultWithConfigJson = renderedOrganizationConfigToProjectCrud(renderedConfig, result.config.id);
       if (!deepPlainEquals(result.config, newResultWithConfigJson)) {
@@ -492,8 +491,6 @@ export async function getProject(projectId: string): Promise<ProjectsCrud["Admin
         throw new StackAssertionError("Project config mismatch", errorData);
       }
     }
-
-    return result;
   }
 
   return result;
