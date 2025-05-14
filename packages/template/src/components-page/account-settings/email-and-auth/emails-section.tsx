@@ -1,3 +1,5 @@
+'use client';
+
 import { yupResolver } from "@hookform/resolvers/yup";
 import { KnownErrors } from "@stackframe/stack-shared/dist/known-errors";
 import { strictEmailSchema, yupObject } from "@stackframe/stack-shared/dist/schema-fields";

@@ -1,3 +1,5 @@
+'use client';
+
 import { yupResolver } from "@hookform/resolvers/yup";
 import { getPasswordError } from '@stackframe/stack-shared/dist/helpers/password';
 import { passwordSchema as schemaFieldsPasswordSchema, yupObject, yupString } from "@stackframe/stack-shared/dist/schema-fields";

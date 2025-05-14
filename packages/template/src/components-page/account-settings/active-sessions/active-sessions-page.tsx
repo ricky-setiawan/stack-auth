@@ -1,3 +1,5 @@
+'use client';
+
 import { fromNow } from "@stackframe/stack-shared/dist/utils/dates";
 import { captureError } from "@stackframe/stack-shared/dist/utils/errors";
 import { runAsynchronously } from "@stackframe/stack-shared/dist/utils/promises";

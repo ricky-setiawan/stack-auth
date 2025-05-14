@@ -1,3 +1,5 @@
+'use client';
+
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger, Button, Typography } from "@stackframe/stack-ui";
 import { useState } from "react";
 import { useStackApp, useUser } from "../../../lib/hooks";

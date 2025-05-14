@@ -1,3 +1,5 @@
+'use client';
+
 import { Button } from "@stackframe/stack-ui";
 import { useUser } from "../../../lib/hooks";
 import { useTranslation } from "../../../lib/translations";

@@ -1,3 +1,5 @@
+'use client';
+
 import { Button, Typography } from "@stackframe/stack-ui";
 import { useState } from "react";
 import { Team } from "../../..";

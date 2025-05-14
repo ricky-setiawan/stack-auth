@@ -1,3 +1,5 @@
+'use client';
+
 import { StackAssertionError } from "@stackframe/stack-shared/dist/utils/errors";
 import { Button } from "@stackframe/stack-ui";
 import { useState } from "react";

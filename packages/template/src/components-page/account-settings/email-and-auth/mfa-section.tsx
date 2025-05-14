@@ -1,3 +1,5 @@
+'use client';
+
 import { createTOTPKeyURI, verifyTOTP } from "@oslojs/otp";
 import { useAsyncCallback } from '@stackframe/stack-shared/dist/hooks/use-async-callback';
 import { generateRandomValues } from '@stackframe/stack-shared/dist/utils/crypto';

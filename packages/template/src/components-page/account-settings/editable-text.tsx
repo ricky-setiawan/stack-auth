@@ -1,3 +1,5 @@
+'use client';
+
 import { Button, Input, Typography } from "@stackframe/stack-ui";
 import { Edit } from "lucide-react";
 import { useState } from "react";

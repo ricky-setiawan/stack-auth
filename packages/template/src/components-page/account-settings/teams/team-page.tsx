@@ -1,3 +1,5 @@
+'use client';
+
 import { Team } from "../../..";
 import { PageLayout } from "../page-layout";
 import { LeaveTeamSection } from "./leave-team-section";

@@ -1,3 +1,5 @@
+'use client';
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Typography } from "@stackframe/stack-ui";
 import { Team } from "../../..";
 import { UserAvatar } from "../../../components/elements/user-avatar";

@@ -1,3 +1,5 @@
+'use client';
+
 import { Separator, Typography } from "@stackframe/stack-ui";
 
 export function Section(props: { title: string, description?: string, children: React.ReactNode }) {

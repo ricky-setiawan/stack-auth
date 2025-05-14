@@ -1,3 +1,5 @@
+'use client';
+
 import { Team } from "../../..";
 import { ProfileImageEditor } from "../../../components/profile-image-editor";
 import { useUser } from "../../../lib/hooks";

@@ -1,3 +1,5 @@
+'use client';
+
 import { Team } from "../../..";
 import { useUser } from "../../../lib/hooks";
 import { useTranslation } from "../../../lib/translations";

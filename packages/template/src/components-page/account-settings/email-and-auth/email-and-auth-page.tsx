@@ -1,3 +1,5 @@
+'use client';
+
 import { PageLayout } from "../page-layout";
 import { EmailsSection } from "./emails-section";
 import { MfaSection } from "./mfa-section";

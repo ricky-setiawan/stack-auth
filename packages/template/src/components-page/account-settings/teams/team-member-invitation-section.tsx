@@ -1,3 +1,5 @@
+'use client';
+
 import { yupResolver } from "@hookform/resolvers/yup";
 import { strictEmailSchema, yupObject } from "@stackframe/stack-shared/dist/schema-fields";
 import { runAsynchronouslyWithAlert } from "@stackframe/stack-shared/dist/utils/promises";

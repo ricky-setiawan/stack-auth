@@ -1,3 +1,5 @@
+'use client';
+
 import { Button } from "@stackframe/stack-ui";
 import { useState } from "react";
 import { CreateApiKeyDialog, ShowApiKeyDialog } from "../../../components/api-key-dialogs";
