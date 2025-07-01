@@ -1,6 +1,6 @@
 import "../polyfills";
 
-import { getUser, getUserQuery } from "@/app/api/latest/users/crud";
+import { getUser, getUserQuery, getUserWithRefreshTokenValidationQuery } from "@/app/api/latest/users/crud";
 import { checkApiKeySet, checkApiKeySetQuery } from "@/lib/internal-api-keys";
 import { getProjectQuery, listManagedProjectIds } from "@/lib/projects";
 import { DEFAULT_BRANCH_ID, Tenancy, getSoleTenancyFromProjectBranch } from "@/lib/tenancies";
@@ -229,7 +229,7 @@ const parseAuth = withTraceSpan('smart request parseAuth', async (req: NextReque
   // Because smart route handlers are always called, we instead send over a single raw query that fetches all the
   // data at the same time, saving us a lot of requests
   const bundledQueries = {
-    user: userId ? getUserQuery(projectId, branchId, userId) : undefined,
+    user: userId && refreshTokenId ? getUserWithRefreshTokenValidationQuery(projectId, branchId, userId, refreshTokenId) : userId ? getUserQuery(projectId, branchId, userId) : undefined,
     isClientKeyValid: publishableClientKey && requestType === "client" ? checkApiKeySetQuery(projectId, { publishableClientKey }) : undefined,
     isServerKeyValid: secretServerKey && requestType === "server" ? checkApiKeySetQuery(projectId, { secretServerKey }) : undefined,
     isAdminKeyValid: superSecretAdminKey && requestType === "admin" ? checkApiKeySetQuery(projectId, { superSecretAdminKey }) : undefined,

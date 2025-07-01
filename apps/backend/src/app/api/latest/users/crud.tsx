@@ -331,6 +331,167 @@ export function getUserQuery(projectId: string, branchId: string, userId: string
   };
 }
 
+export function getUserWithRefreshTokenValidationQuery(projectId: string, branchId: string, userId: string, refreshTokenId: string): RawQuery<UsersCrud["Admin"]["Read"] | null> {
+  return {
+    sql: Prisma.sql`
+      SELECT to_json(
+        (
+          SELECT (
+            to_jsonb("ProjectUser".*) ||
+            jsonb_build_object(
+              'lastActiveAt', (
+                SELECT MAX("eventStartedAt") as "lastActiveAt"
+                FROM "Event"
+                WHERE data->>'projectId' = ("Tenancy"."projectId") AND COALESCE("data"->>'branchId', 'main') = ("Tenancy"."branchId") AND "data"->>'userId' = ("ProjectUser"."projectUserId")::text AND "systemEventTypeIds" @> '{"$user-activity"}'
+              ),
+              'ContactChannels', (
+                SELECT COALESCE(ARRAY_AGG(
+                  to_jsonb("ContactChannel") ||
+                  jsonb_build_object()
+                ), '{}')
+                FROM "ContactChannel"
+                WHERE "ContactChannel"."tenancyId" = "ProjectUser"."tenancyId" AND "ContactChannel"."projectUserId" = "ProjectUser"."projectUserId" AND "ContactChannel"."isPrimary" = 'TRUE'
+              ),
+              'ProjectUserOAuthAccounts', (
+                SELECT COALESCE(ARRAY_AGG(
+                  to_jsonb("ProjectUserOAuthAccount")
+                ), '{}')
+                FROM "ProjectUserOAuthAccount"
+                WHERE "ProjectUserOAuthAccount"."tenancyId" = "ProjectUser"."tenancyId" AND "ProjectUserOAuthAccount"."projectUserId" = "ProjectUser"."projectUserId"
+              ),
+              'AuthMethods', (
+                SELECT COALESCE(ARRAY_AGG(
+                  to_jsonb("AuthMethod") ||
+                  jsonb_build_object(
+                    'PasswordAuthMethod', (
+                      SELECT (
+                        to_jsonb("PasswordAuthMethod") ||
+                        jsonb_build_object()
+                      )
+                      FROM "PasswordAuthMethod"
+                      WHERE "PasswordAuthMethod"."tenancyId" = "ProjectUser"."tenancyId" AND "PasswordAuthMethod"."projectUserId" = "ProjectUser"."projectUserId" AND "PasswordAuthMethod"."authMethodId" = "AuthMethod"."id"
+                    ),
+                    'OtpAuthMethod', (
+                      SELECT (
+                        to_jsonb("OtpAuthMethod") ||
+                        jsonb_build_object()
+                      )
+                      FROM "OtpAuthMethod"
+                      WHERE "OtpAuthMethod"."tenancyId" = "ProjectUser"."tenancyId" AND "OtpAuthMethod"."projectUserId" = "ProjectUser"."projectUserId" AND "OtpAuthMethod"."authMethodId" = "AuthMethod"."id"
+                    ),
+                    'PasskeyAuthMethod', (
+                      SELECT (
+                        to_jsonb("PasskeyAuthMethod") ||
+                        jsonb_build_object()
+                      )
+                      FROM "PasskeyAuthMethod"
+                      WHERE "PasskeyAuthMethod"."tenancyId" = "ProjectUser"."tenancyId" AND "PasskeyAuthMethod"."projectUserId" = "ProjectUser"."projectUserId" AND "PasskeyAuthMethod"."authMethodId" = "AuthMethod"."id"
+                    ),
+                    'OAuthAuthMethod', (
+                      SELECT (
+                        to_jsonb("OAuthAuthMethod") ||
+                        jsonb_build_object()
+                      )
+                      FROM "OAuthAuthMethod"
+                      WHERE "OAuthAuthMethod"."tenancyId" = "ProjectUser"."tenancyId" AND "OAuthAuthMethod"."projectUserId" = "ProjectUser"."projectUserId" AND "OAuthAuthMethod"."authMethodId" = "AuthMethod"."id"
+                    )
+                  )
+                ), '{}')
+                FROM "AuthMethod"
+                WHERE "AuthMethod"."tenancyId" = "ProjectUser"."tenancyId" AND "AuthMethod"."projectUserId" = "ProjectUser"."projectUserId"
+              ),
+              'SelectedTeamMember', (
+                SELECT (
+                  to_jsonb("TeamMember") ||
+                  jsonb_build_object(
+                    'Team', (
+                      SELECT (
+                        to_jsonb("Team") ||
+                        jsonb_build_object()
+                      )
+                      FROM "Team"
+                      WHERE "Team"."tenancyId" = "ProjectUser"."tenancyId" AND "Team"."teamId" = "TeamMember"."teamId"
+                    )
+                  )
+                )
+                FROM "TeamMember"
+                WHERE "TeamMember"."tenancyId" = "ProjectUser"."tenancyId" AND "TeamMember"."projectUserId" = "ProjectUser"."projectUserId" AND "TeamMember"."isSelected" = 'TRUE'
+              )
+            )
+          )
+          FROM "ProjectUser"
+          LEFT JOIN "Tenancy" ON "Tenancy"."id" = "ProjectUser"."tenancyId"
+          LEFT JOIN "Project" ON "Project"."id" = "Tenancy"."projectId"
+          LEFT JOIN "ProjectUserRefreshToken" ON "ProjectUserRefreshToken"."tenancyId" = "ProjectUser"."tenancyId" 
+            AND "ProjectUserRefreshToken"."projectUserId" = "ProjectUser"."projectUserId" 
+            AND "ProjectUserRefreshToken"."id" = ${refreshTokenId}::UUID
+          WHERE "Tenancy"."projectId" = ${projectId} 
+            AND "Tenancy"."branchId" = ${branchId} 
+            AND "ProjectUser"."projectUserId" = ${userId}::UUID
+            AND "ProjectUserRefreshToken"."id" IS NOT NULL
+            AND ("ProjectUserRefreshToken"."expiresAt" IS NULL OR "ProjectUserRefreshToken"."expiresAt" > NOW())
+        )
+      ) AS "row_data_json"
+    `,
+    postProcess: (queryResult) => {
+      if (queryResult.length !== 1) {
+        throw new StackAssertionError(`Expected 1 user with id ${userId} in project ${projectId}, got ${queryResult.length}`, { queryResult });
+      }
+
+      const row = queryResult[0].row_data_json;
+      if (!row) {
+        return null;
+      }
+
+      const primaryEmailContactChannel = row.ContactChannels.find((c: any) => c.type === 'EMAIL' && c.isPrimary);
+      const passwordAuth = row.AuthMethods.find((m: any) => m.PasswordAuthMethod);
+      const otpAuth = row.AuthMethods.find((m: any) => m.OtpAuthMethod);
+      const passkeyAuth = row.AuthMethods.find((m: any) => m.PasskeyAuthMethod);
+
+      if (row.SelectedTeamMember && !row.SelectedTeamMember.Team) {
+        // This seems to happen in production much more often than it should, so let's log some information for debugging
+        captureError("selected-team-member-and-team-consistency", new StackAssertionError("Selected team member has no team? Ignoring it", { row }));
+        row.SelectedTeamMember = null;
+      }
+
+      return {
+        id: row.projectUserId,
+        display_name: row.displayName || null,
+        primary_email: primaryEmailContactChannel?.value || null,
+        primary_email_verified: primaryEmailContactChannel?.isVerified || false,
+        primary_email_auth_enabled: primaryEmailContactChannel?.usedForAuth === 'TRUE' ? true : false,
+        profile_image_url: row.profileImageUrl,
+        signed_up_at_millis: new Date(row.createdAt + "Z").getTime(),
+        client_metadata: row.clientMetadata,
+        client_read_only_metadata: row.clientReadOnlyMetadata,
+        server_metadata: row.serverMetadata,
+        has_password: !!passwordAuth,
+        otp_auth_enabled: !!otpAuth,
+        auth_with_email: !!passwordAuth || !!otpAuth,
+        requires_totp_mfa: row.requiresTotpMfa,
+        passkey_auth_enabled: !!passkeyAuth,
+        oauth_providers: row.ProjectUserOAuthAccounts.map((a: any) => ({
+          id: a.configOAuthProviderId,
+          account_id: a.providerAccountId,
+          email: a.email,
+        })),
+        selected_team_id: row.SelectedTeamMember?.teamId ?? null,
+        selected_team: row.SelectedTeamMember ? {
+          id: row.SelectedTeamMember.Team.teamId,
+          display_name: row.SelectedTeamMember.Team.displayName,
+          profile_image_url: row.SelectedTeamMember.Team.profileImageUrl,
+          created_at_millis: new Date(row.SelectedTeamMember.Team.createdAt + "Z").getTime(),
+          client_metadata: row.SelectedTeamMember.Team.clientMetadata,
+          client_read_only_metadata: row.SelectedTeamMember.Team.clientReadOnlyMetadata,
+          server_metadata: row.SelectedTeamMember.Team.serverMetadata,
+        } : null,
+        last_active_at_millis: row.lastActiveAt ? new Date(row.lastActiveAt + "Z").getTime() : new Date(row.createdAt + "Z").getTime(),
+        is_anonymous: row.isAnonymous,
+      };
+    },
+  };
+}
+
 export async function getUser(options: { userId: string } & ({ projectId: string, branchId: string } | { tenancyId: string })) {
   let projectId, branchId;
   if (!("tenancyId" in options)) {
