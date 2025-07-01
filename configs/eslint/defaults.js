@@ -133,5 +133,6 @@ module.exports = {
         ],
       },
     ],
+    "new-parens": "error",
   },
 };
