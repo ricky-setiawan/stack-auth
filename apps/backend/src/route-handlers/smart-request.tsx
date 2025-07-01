@@ -7,7 +7,7 @@ import { DEFAULT_BRANCH_ID, Tenancy, getSoleTenancyFromProjectBranch } from "@/l
 import { decodeAccessToken } from "@/lib/tokens";
 import { prismaClient, rawQueryAll } from "@/prisma-client";
 import { traceSpan, withTraceSpan } from "@/utils/telemetry";
-import { Prisma } from "@prisma/client";
+import { sql } from "@prisma/client/runtime/library";
 import { KnownErrors } from "@stackframe/stack-shared";
 import { ProjectsCrud } from "@stackframe/stack-shared/dist/interface/crud/projects";
 import { UsersCrud } from "@stackframe/stack-shared/dist/interface/crud/users";
@@ -235,7 +235,7 @@ const parseAuth = withTraceSpan('smart request parseAuth', async (req: NextReque
     isServerKeyValid: secretServerKey && requestType === "server" ? checkApiKeySetQuery(projectId, { secretServerKey }) : undefined,
     isAdminKeyValid: superSecretAdminKey && requestType === "admin" ? checkApiKeySetQuery(projectId, { superSecretAdminKey }) : undefined,
     isRefreshTokenValid: refreshTokenId ? {
-      sql: Prisma.sql`
+      sql: sql`
         SELECT 't' AS "result"
         FROM "ProjectUserRefreshToken" prt
         JOIN "Tenancy" t ON t."id" = prt."tenancyId"
