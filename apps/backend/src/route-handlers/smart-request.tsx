@@ -7,6 +7,7 @@ import { DEFAULT_BRANCH_ID, Tenancy, getSoleTenancyFromProjectBranch } from "@/l
 import { decodeAccessToken } from "@/lib/tokens";
 import { prismaClient, rawQueryAll } from "@/prisma-client";
 import { traceSpan, withTraceSpan } from "@/utils/telemetry";
+import { Prisma } from "@prisma/client";
 import { KnownErrors } from "@stackframe/stack-shared";
 import { ProjectsCrud } from "@stackframe/stack-shared/dist/interface/crud/projects";
 import { UsersCrud } from "@stackframe/stack-shared/dist/interface/crud/users";
@@ -233,6 +234,18 @@ const parseAuth = withTraceSpan('smart request parseAuth', async (req: NextReque
     isClientKeyValid: publishableClientKey && requestType === "client" ? checkApiKeySetQuery(projectId, { publishableClientKey }) : undefined,
     isServerKeyValid: secretServerKey && requestType === "server" ? checkApiKeySetQuery(projectId, { secretServerKey }) : undefined,
     isAdminKeyValid: superSecretAdminKey && requestType === "admin" ? checkApiKeySetQuery(projectId, { superSecretAdminKey }) : undefined,
+    isRefreshTokenValid: refreshTokenId ? {
+      sql: Prisma.sql`
+        SELECT 't' AS "result"
+        FROM "ProjectUserRefreshToken" prt
+        JOIN "Tenancy" t ON t."id" = prt."tenancyId"
+        WHERE prt."id" = ${refreshTokenId}
+        AND t."projectId" = ${projectId}
+        AND t."branchId" = ${branchId}
+        AND (prt."expiresAt" IS NULL OR prt."expiresAt" > ${new Date()})
+      `,
+      postProcess: (rows: any[]) => rows[0]?.result === "t",
+    } : undefined,
     project: getProjectQuery(projectId),
   };
   const queriesResults = await rawQueryAll(prismaClient, bundledQueries);
@@ -284,6 +297,10 @@ const parseAuth = withTraceSpan('smart request parseAuth', async (req: NextReque
   }
   if (!tenancy) {
     throw new KnownErrors.BranchDoesNotExist(branchId);
+  }
+
+  if (refreshTokenId && !queriesResults.isRefreshTokenValid) {
+    throw new KnownErrors.RefreshTokenNotFoundOrExpired();
   }
 
   return {
