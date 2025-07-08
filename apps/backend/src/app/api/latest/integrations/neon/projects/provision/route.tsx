@@ -65,6 +65,7 @@ export const POST = createSmartRouteHandler({
       has_publishable_client_key: false,
       has_secret_server_key: false,
       has_super_secret_admin_key: true,
+      isNeonIntegrationInitialKey: true,
     });
 
     return {

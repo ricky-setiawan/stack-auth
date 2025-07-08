@@ -36,12 +36,14 @@ export const POST = createSmartRouteHandler({
       publishable_client_key: yupString().optional(),
       secret_server_key: yupString().optional(),
       super_secret_admin_key: yupString().optional(),
+      neon_integration_initial_key: yupBoolean().defined(),
     }).defined(),
   }),
   handler: async ({ auth, body }) => {
     const set = await createApiKeySet({
       projectId: auth.project.id,
       ...body,
+      isNeonIntegrationInitialKey: true,
     });
 
     return {

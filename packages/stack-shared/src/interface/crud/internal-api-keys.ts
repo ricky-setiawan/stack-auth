@@ -7,6 +7,7 @@ const baseInternalApiKeysReadSchema = yupObject({
   expires_at_millis: yupNumber().defined(),
   manually_revoked_at_millis: yupNumber().optional(),
   created_at_millis: yupNumber().defined(),
+  neon_integration_initial_key: yupBoolean().defined(),
 });
 
 // Used for the result of the create endpoint
@@ -22,6 +23,7 @@ export const internalApiKeysCreateOutputSchema = baseInternalApiKeysReadSchema.c
   publishable_client_key: yupString().optional(),
   secret_server_key: yupString().optional(),
   super_secret_admin_key: yupString().optional(),
+  neon_integration_initial_key: yupBoolean().defined(),
 }).defined());
 
 // Used for list, read and update endpoints after the initial creation
@@ -35,6 +37,7 @@ export const internalApiKeysCrudAdminObfuscatedReadSchema = baseInternalApiKeysR
   super_secret_admin_key: yupObject({
     last_four: yupString().defined(),
   }).optional(),
+  neon_integration_initial_key: yupBoolean().defined(),
 }));
 
 export const internalApiKeysCrudAdminUpdateSchema = yupObject({

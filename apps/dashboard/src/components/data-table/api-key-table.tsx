@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 
 type ExtendedInternalApiKey = InternalApiKey & {
   status: 'valid' | 'expired' | 'revoked',
+  neonIntegrationInitialKey: boolean,
 };
 
 function toolbarRender<TData>(table: Table<TData>) {
@@ -29,17 +30,28 @@ function RevokeDialog(props: {
   open: boolean,
   onOpenChange: (open: boolean) => void,
 }) {
-  return <ActionDialog
-    open={props.open}
-    onOpenChange={props.onOpenChange}
-    title="Revoke API Key"
-    danger
-    cancelButton
-    okButton={{ label: "Revoke Key", onClick: async () => { await props.apiKey.revoke(); } }}
-    confirmText="I understand this will unlink all the apps using this API key"
-  >
-    {`Are you sure you want to revoke client key *****${props.apiKey.publishableClientKey?.lastFour} and server key *****${props.apiKey.secretServerKey?.lastFour}?`}
-  </ActionDialog>;
+  const isNeon = props.apiKey.neonIntegrationInitialKey;
+  const title = isNeon ? "Remove Neon Auth integration" : "Revoke API Key";
+  const confirmText = isNeon
+    ? "Deleting this API key will remove the Neon Auth integration. This can not be undone."
+    : "I understand this will unlink all the apps using this API key";
+  const description = isNeon
+    ? `Are you sure you want to delete this Neon integration API key *****${props.apiKey.superSecretAdminKey?.lastFour ?? ''}?`
+    : `Are you sure you want to revoke client key *****${props.apiKey.publishableClientKey?.lastFour} and server key *****${props.apiKey.secretServerKey?.lastFour}?`;
+
+  return (
+    <ActionDialog
+      open={props.open}
+      onOpenChange={props.onOpenChange}
+      title={title}
+      danger
+      cancelButton
+      okButton={{ label: isNeon ? "Delete Key" : "Revoke Key", onClick: async () => { await props.apiKey.revoke(); } }}
+      confirmText={confirmText}
+    >
+      {description}
+    </ActionDialog>
+  );
 }
 
 function Actions({ row }: { row: Row<ExtendedInternalApiKey> }) {
@@ -105,6 +117,7 @@ export function InternalApiKeyTable(props: { apiKeys: InternalApiKey[] }) {
   const extendedApiKeys = useMemo(() => {
     const keys = props.apiKeys.map((apiKey) => ({
       ...apiKey,
+      neonIntegrationInitialKey: (apiKey as any).neonIntegrationInitialKey ?? false,
       status: ({ 'valid': 'valid', 'manually-revoked': 'revoked', 'expired': 'expired' } as const)[apiKey.whyInvalid() || 'valid'],
     } satisfies ExtendedInternalApiKey));
     // first sort based on status, then by createdAt

@@ -50,6 +50,7 @@ export const POST = createSmartRouteHandler({
         created_at_millis: set.createdAt.getTime(),
         expires_at_millis: set.expiresAt.getTime(),
         manually_revoked_at_millis: set.manuallyRevokedAt?.getTime(),
+        neon_integration_initial_key: set.neonIntegrationInitialKey,
       }
     } as const;
   },

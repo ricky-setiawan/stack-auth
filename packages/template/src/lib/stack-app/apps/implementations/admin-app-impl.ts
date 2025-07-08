@@ -188,6 +188,7 @@ export class _StackAdminAppImplIncomplete<HasTokenStore extends boolean, Project
       expiresAt: new Date(data.expires_at_millis),
       manuallyRevokedAt: data.manually_revoked_at_millis ? new Date(data.manually_revoked_at_millis) : null,
       createdAt: new Date(data.created_at_millis),
+      neonIntegrationInitialKey: data.neon_integration_initial_key,
       isValid() {
         return this.whyInvalid() === null;
       },
@@ -210,6 +211,7 @@ export class _StackAdminAppImplIncomplete<HasTokenStore extends boolean, Project
       publishableClientKey: data.publishable_client_key ? { lastFour: data.publishable_client_key.last_four } : null,
       secretServerKey: data.secret_server_key ? { lastFour: data.secret_server_key.last_four } : null,
       superSecretAdminKey: data.super_secret_admin_key ? { lastFour: data.super_secret_admin_key.last_four } : null,
+      neonIntegrationInitialKey: data.neon_integration_initial_key,
     };
   }
 
@@ -219,6 +221,7 @@ export class _StackAdminAppImplIncomplete<HasTokenStore extends boolean, Project
       publishableClientKey: data.publishable_client_key,
       secretServerKey: data.secret_server_key,
       superSecretAdminKey: data.super_secret_admin_key,
+      neonIntegrationInitialKey: data.neon_integration_initial_key,
     };
   }
 

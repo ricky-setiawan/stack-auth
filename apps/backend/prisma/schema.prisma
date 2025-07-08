@@ -542,7 +542,8 @@ model ApiKeySet {
   publishableClientKey String?   @unique
   secretServerKey      String?   @unique
   superSecretAdminKey  String?   @unique
-
+  /// Indicates that this API key set was automatically created when setting up the Neon Auth integration
+  neonIntegrationInitialKey Boolean @default(false)
   @@id([projectId, id])
 }
 

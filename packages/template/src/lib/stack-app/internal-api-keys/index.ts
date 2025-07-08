@@ -11,14 +11,16 @@ export type InternalApiKeyBase = {
   isValid(): boolean,
   whyInvalid(): "expired" | "manually-revoked" | null,
   revoke(): Promise<void>,
+  neonIntegrationInitialKey: boolean,
 };
 
-export type InternalApiKeyBaseCrudRead = Pick<InternalApiKeysCrud["Admin"]["Read"], "id" | "created_at_millis" | "description" | "expires_at_millis" | "manually_revoked_at_millis">;
+export type InternalApiKeyBaseCrudRead = Pick<InternalApiKeysCrud["Admin"]["Read"], "id" | "created_at_millis" | "description" | "expires_at_millis" | "manually_revoked_at_millis" | "neon_integration_initial_key">;
 
 export type InternalApiKeyFirstView = {
   publishableClientKey?: string,
   secretServerKey?: string,
   superSecretAdminKey?: string,
+  neonIntegrationInitialKey: boolean,
 } & InternalApiKeyBase;
 
 export type InternalApiKey = {
@@ -31,6 +33,7 @@ export type InternalApiKey = {
   superSecretAdminKey: null | {
     lastFour: string,
   },
+  neonIntegrationInitialKey: boolean,
 } & InternalApiKeyBase;
 
 export type InternalApiKeyCreateOptions = {

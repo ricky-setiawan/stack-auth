@@ -134,6 +134,7 @@ function createSummaryFromDbType(set: ApiKeySet): InternalApiKeysCrud["Admin"]["
     created_at_millis: set.createdAt.getTime(),
     expires_at_millis: set.expiresAt.getTime(),
     manually_revoked_at_millis: set.manuallyRevokedAt?.getTime() ?? undefined,
+    neon_integration_initial_key: set.neonIntegrationInitialKey,
   };
 }
 
@@ -145,6 +146,9 @@ export const createApiKeySet = async (data: {
   has_publishable_client_key: boolean,
   has_secret_server_key: boolean,
   has_super_secret_admin_key: boolean,
+  // If the caller sets isNeonIntegrationInitialKey to true, mark the key set as such. All other
+  // callers will implicitly set this to false.
+  isNeonIntegrationInitialKey?: boolean,
 }) => {
   const set = await prismaClient.apiKeySet.create({
     data: {
@@ -155,6 +159,7 @@ export const createApiKeySet = async (data: {
       publishableClientKey: data.has_publishable_client_key ? `pck_${generateSecureRandomString()}` : undefined,
       secretServerKey: data.has_secret_server_key ? `ssk_${generateSecureRandomString()}` : undefined,
       superSecretAdminKey: data.has_super_secret_admin_key ? `sak_${generateSecureRandomString()}` : undefined,
+      neonIntegrationInitialKey: data.isNeonIntegrationInitialKey ?? false,
     },
   });
 
@@ -167,5 +172,6 @@ export const createApiKeySet = async (data: {
     created_at_millis: set.createdAt.getTime(),
     expires_at_millis: set.expiresAt.getTime(),
     manually_revoked_at_millis: set.manuallyRevokedAt?.getTime(),
+    neon_integration_initial_key: set.neonIntegrationInitialKey,
   };
 };

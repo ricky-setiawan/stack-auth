@@ -64,6 +64,7 @@ export const internalApiKeyCrudHandlers = createLazyProxy(() => createPrismaCrud
       super_secret_admin_key: prisma.superSecretAdminKey ? {
         last_four: prisma.superSecretAdminKey.slice(-4),
       } : undefined,
+      neon_integration_initial_key: prisma.neonIntegrationInitialKey,
       created_at_millis: prisma.createdAt.getTime(),
       expires_at_millis: prisma.expiresAt.getTime(),
       manually_revoked_at_millis: prisma.manuallyRevokedAt?.getTime(),
