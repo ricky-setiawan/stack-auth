@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowRight, Check, Code, Copy, Play, Send, Settings, Sparkles, Zap } from 'lucide-react';
+import { ArrowRight, Check, Code, Copy, Play, Send, Settings, Zap } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useAPIPageContext } from './api-page-wrapper';
 import { Button } from './button';
@@ -135,6 +135,7 @@ export function EnhancedAPIPage({ document, operations, description }: EnhancedA
     setRequestState(prev => ({ ...prev, headers: sharedHeaders }));
   }, [sharedHeaders]);
 
+
   // Helper function to generate example data from OpenAPI schema
   const generateExampleFromSchema = useCallback((schema: OpenAPISchema, spec?: OpenAPISpec): unknown => {
     //console.log('Processing schema:', JSON.stringify(schema, null, 2));
@@ -181,8 +182,8 @@ export function EnhancedAPIPage({ document, operations, description }: EnhancedA
         if (prop.example !== undefined) {
           example[key] = prop.example;
         } else {
-          // Just use the field name as the value
-          example[key] = key;
+          // Use OpenAPI type information to show type instead of generated values
+          example[key] = `<${prop.type || 'unknown'}>`;
         }
       });
 
@@ -400,6 +401,7 @@ export function EnhancedAPIPage({ document, operations, description }: EnhancedA
                 .catch(error => console.error('Failed to copy to clipboard:', error));
             }}
             description={description || operation.description}
+            generateExample={generateExampleFromSchema}
           />
         );
       })}
@@ -418,6 +420,7 @@ function ModernAPIPlayground({
   onExecute,
   onCopy,
   description,
+  generateExample,
 }: {
   operation: OpenAPIOperation,
   path: string,
@@ -428,6 +431,7 @@ function ModernAPIPlayground({
   onExecute: () => void,
   onCopy: (text: string) => void,
   description?: string,
+  generateExample: (schema: OpenAPISchema, spec?: OpenAPISpec) => unknown,
 }) {
   const [copied, setCopied] = useState(false);
   const [activeCodeTab, setActiveCodeTab] = useState<'curl' | 'javascript' | 'python'>('curl');
@@ -683,7 +687,12 @@ function ModernAPIPlayground({
         </div>
 
         {/* Response Panel */}
-        <ResponsePanel response={requestState.response} />
+        <ResponsePanel
+          response={requestState.response}
+          operation={operation}
+          spec={spec}
+          generateExample={generateExample}
+        />
 
         {/* Code Examples */}
         <div className="bg-fd-card border border-fd-border rounded-lg">
@@ -839,115 +848,189 @@ function RequestBodySection({
   );
 }
 
-// Response Panel - Clean design
-function ResponsePanel({ response }: { response: RequestState['response'] }) {
-  if (response.loading) {
-    return (
-      <div className="bg-fd-card border border-fd-border rounded-lg">
-        <div className="px-6 py-4 border-b border-fd-border bg-fd-muted/30">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-            <div className="font-semibold text-fd-foreground text-base leading-none">Response</div>
-          </div>
-        </div>
-        <div className="p-12 flex flex-col items-center justify-center">
-          <div className="relative mb-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-fd-muted"></div>
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-t-purple-500 absolute top-0"></div>
-          </div>
-          <p className="text-fd-muted-foreground text-sm text-center leading-relaxed m-0">Sending request...</p>
-        </div>
-      </div>
-    );
-  }
+// Response Panel - Clean design with tabbed interface
+function ResponsePanel({
+  response,
+  operation,
+  spec,
+  generateExample
+}: {
+  response: RequestState['response'],
+  operation: OpenAPIOperation,
+  spec: OpenAPISpec,
+  generateExample: (schema: OpenAPISchema, spec?: OpenAPISpec) => unknown,
+}) {
+  const [activeTab, setActiveTab] = useState<'expected' | 'live'>('expected');
 
-  if (response.error) {
-    return (
-      <div className="bg-fd-card border border-fd-border rounded-lg">
-        <div className="px-6 py-4 border-b border-fd-border bg-fd-muted/30">
-          <div className="flex items-center gap-2">
-            <span className="text-red-600 dark:text-red-400 text-base leading-none">❌</span>
-            <div className="font-semibold text-fd-foreground text-base leading-none">Error</div>
-          </div>
-        </div>
-        <div className="p-6">
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-            <p className="text-red-800 dark:text-red-300 font-medium mb-2 leading-none">Request Failed</p>
-            <p className="text-red-600 dark:text-red-400 text-sm whitespace-pre-wrap break-words leading-relaxed m-0">{response.error}</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Get expected response schema
+  const getExpectedResponseExample = () => {
+    try {
+      const responses = operation.responses;
+      const successResponse = responses['200'] || responses['201'];
+      const jsonContent = successResponse.content?.['application/json'];
+      const schema = jsonContent?.schema;
 
-  if (!response.status) {
-    return (
-      <div className="bg-fd-card border border-fd-border rounded-lg">
-        <div className="px-6 py-4 border-b border-fd-border bg-fd-muted/30">
-          <div className="flex items-center gap-2">
-            <ArrowRight className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-            <div className="font-semibold text-fd-foreground text-base leading-none">Response</div>
-          </div>
-        </div>
-        <div className="p-12 flex flex-col items-center justify-center">
-          <div className="w-12 h-12 rounded-full bg-fd-muted/30 flex items-center justify-center mb-4">
-            <Zap className="w-6 h-6 text-fd-muted-foreground" />
-          </div>
-          <p className="text-fd-muted-foreground text-center text-sm leading-relaxed m-0">
-            Click &quot;Try it out&quot; to see the API response
-          </p>
-        </div>
-      </div>
-    );
-  }
+      if (schema) {
+        return generateExample(schema, spec);
+      }
+      return null;
+    } catch (error) {
+      console.error('Error generating response example:', error);
+      return null;
+    }
+  };
 
-  const statusColor = response.status < 300
-    ? 'from-green-500 to-green-600'
-    : response.status < 400
-      ? 'from-yellow-500 to-yellow-600'
-      : 'from-red-500 to-red-600';
+  const expectedExample = getExpectedResponseExample();
+
+  // Auto-switch to live tab when request starts
+  if (response.loading && activeTab === 'expected') {
+    setActiveTab('live');
+  }
 
   return (
     <div className="bg-fd-card border border-fd-border rounded-lg">
+      {/* Tabs Header */}
       <div className="px-6 py-4 border-b border-fd-border bg-fd-muted/30">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-green-600 dark:text-green-400 text-base leading-none">✓</span>
+            <ArrowRight className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             <div className="font-semibold text-fd-foreground text-base leading-none">Response</div>
-          </div>
-          <div className="flex items-center gap-2">
-            {response.duration && (
-              <span className="text-xs text-fd-muted-foreground bg-fd-muted px-2 py-1 rounded flex items-center leading-none">
-                {response.duration}ms
-              </span>
-            )}
-            <span className={`inline-flex items-center px-3 py-1 rounded-md bg-gradient-to-r ${statusColor} text-white font-mono font-bold text-xs leading-none`}>
-              {response.status}
-            </span>
           </div>
         </div>
       </div>
 
-      <div className="p-6 space-y-4">
-        {response.headers && Object.keys(response.headers).length > 0 && (
+      {/* Tab Navigation */}
+      <div className="flex border-b border-fd-border">
+        <button
+          onClick={() => setActiveTab('expected')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors leading-none ${
+            activeTab === 'expected'
+              ? 'border-fd-primary text-fd-primary bg-fd-primary/5'
+              : 'border-transparent text-fd-muted-foreground hover:text-fd-foreground'
+          }`}
+        >
+          Expected Response
+        </button>
+        <button
+          onClick={() => setActiveTab('live')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors leading-none ${
+            activeTab === 'live'
+              ? 'border-fd-primary text-fd-primary bg-fd-primary/5'
+              : 'border-transparent text-fd-muted-foreground hover:text-fd-foreground'
+          }`}
+        >
+          Live Response
+          {response.status && (
+            <span className={`ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-mono ${
+              response.status < 300
+                ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                : response.status < 400
+                  ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                  : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+            }`}>
+              {response.status}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* Tab Content */}
+      <div className="p-6">
+        {/* Expected Response Tab */}
+        {activeTab === 'expected' && (
           <div>
-            <div className="text-sm font-semibold text-fd-foreground mb-2 leading-none">Response Headers</div>
-            <div className="bg-fd-muted rounded-lg p-3 border">
-              <pre className="text-xs font-mono overflow-auto max-h-32 whitespace-pre-wrap break-words text-fd-foreground m-0">
-                {JSON.stringify(response.headers, null, 2)}
-              </pre>
-            </div>
+            {expectedExample ? (
+              <div>
+                <div className="text-sm font-semibold text-fd-foreground mb-2 leading-none">Expected Response (200 OK)</div>
+                <div className="bg-fd-muted rounded-lg p-3 border">
+                  <pre className="text-sm font-mono overflow-auto max-h-96 text-fd-foreground whitespace-pre-wrap break-words m-0">
+                    {JSON.stringify(expectedExample, null, 2)}
+                  </pre>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12">
+                <div className="w-12 h-12 rounded-full bg-fd-muted/30 flex items-center justify-center mb-4">
+                  <Zap className="w-6 h-6 text-fd-muted-foreground" />
+                </div>
+                <p className="text-fd-muted-foreground text-center text-sm leading-relaxed m-0">
+                  No response schema available
+                </p>
+              </div>
+            )}
           </div>
         )}
 
-        {response.data !== undefined && (
+        {/* Live Response Tab */}
+        {activeTab === 'live' && (
           <div>
-            <div className="text-sm font-semibold text-fd-foreground mb-2 leading-none">Response Body</div>
-            <div className="bg-fd-muted rounded-lg p-3 border">
-              <pre className="text-sm font-mono overflow-auto max-h-96 text-fd-foreground whitespace-pre-wrap break-words m-0">
-                {typeof response.data === 'string' ? response.data : JSON.stringify(response.data, null, 2)}
-              </pre>
-            </div>
+            {response.loading ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <div className="relative mb-4">
+                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-fd-muted"></div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-t-purple-500 absolute top-0"></div>
+                </div>
+                <p className="text-fd-muted-foreground text-sm text-center leading-relaxed m-0">Sending request...</p>
+              </div>
+            ) : response.error ? (
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                <p className="text-red-800 dark:text-red-300 font-medium mb-2 leading-none">Request Failed</p>
+                <p className="text-red-600 dark:text-red-400 text-sm whitespace-pre-wrap break-words leading-relaxed m-0">{response.error}</p>
+              </div>
+            ) : response.status ? (
+              <div className="space-y-4">
+                {/* Response metadata */}
+                <div className="flex items-center gap-4">
+                  {response.duration && (
+                    <span className="text-xs text-fd-muted-foreground bg-fd-muted px-2 py-1 rounded flex items-center leading-none">
+                      {response.duration}ms
+                    </span>
+                  )}
+                  <span className={`inline-flex items-center px-3 py-1 rounded-md font-mono font-bold text-xs leading-none ${
+                    response.status < 300
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                      : response.status < 400
+                        ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                        : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                  }`}>
+                    {response.status}
+                  </span>
+                </div>
+
+                {/* Response Headers */}
+                {response.headers && Object.keys(response.headers).length > 0 && (
+                  <div>
+                    <div className="text-sm font-semibold text-fd-foreground mb-2 leading-none">Response Headers</div>
+                    <div className="bg-fd-muted rounded-lg p-3 border">
+                      <pre className="text-xs font-mono overflow-auto max-h-32 whitespace-pre-wrap break-words text-fd-foreground m-0">
+                        {JSON.stringify(response.headers, null, 2)}
+                      </pre>
+                    </div>
+                  </div>
+                )}
+
+                {/* Response Body */}
+                {response.data !== undefined && (
+                  <div>
+                    <div className="text-sm font-semibold text-fd-foreground mb-2 leading-none">Response Body</div>
+                    <div className="bg-fd-muted rounded-lg p-3 border">
+                      <pre className="text-sm font-mono overflow-auto max-h-96 text-fd-foreground whitespace-pre-wrap break-words m-0">
+                        {typeof response.data === 'string' ? response.data : JSON.stringify(response.data, null, 2)}
+                      </pre>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12">
+                <div className="w-12 h-12 rounded-full bg-fd-muted/30 flex items-center justify-center mb-4">
+                  <Zap className="w-6 h-6 text-fd-muted-foreground" />
+                </div>
+                <p className="text-fd-muted-foreground text-center text-sm leading-relaxed m-0">
+                  Click &quot;Try it out&quot; to see the live response
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>
