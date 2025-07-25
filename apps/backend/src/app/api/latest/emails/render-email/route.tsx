@@ -1,7 +1,7 @@
 import { getEmailThemeForTemplate, renderEmailWithTemplate } from "@/lib/email-rendering";
 import { createSmartRouteHandler } from "@/route-handlers/smart-route-handler";
 import { KnownErrors } from "@stackframe/stack-shared/dist/known-errors";
-import { adaptSchema, templateThemeIdSchema, yupMixed, yupNumber, yupObject, yupString } from "@stackframe/stack-shared/dist/schema-fields";
+import { adaptSchema, templateThemeIdSchema, yupNumber, yupObject, yupString } from "@stackframe/stack-shared/dist/schema-fields";
 import { captureError, StackAssertionError, StatusError } from "@stackframe/stack-shared/dist/utils/errors";
 
 
@@ -28,7 +28,6 @@ export const POST = createSmartRouteHandler({
     bodyType: yupString().oneOf(["json"]).defined(),
     body: yupObject({
       html: yupString().defined(),
-      schema: yupMixed(),
       subject: yupString(),
       notification_category: yupString(),
     }).defined(),
@@ -60,8 +59,9 @@ export const POST = createSmartRouteHandler({
       passwordResetLink: "<password reset link>",
       teamInvitationLink: "<team invitation link>",
       signInInvitationLink: "<sign in invitation link>",
+      user: { displayName: "John Doe" },
     };
-    const result = await renderEmailWithTemplate(templateSource, themeSource, variables);
+    const result = await renderEmailWithTemplate(templateSource, themeSource, variables, true);
     if ("error" in result) {
       captureError('render-email', new StackAssertionError("Error rendering email with theme", { result }));
       throw new KnownErrors.EmailRenderingError(result.error);
@@ -71,7 +71,6 @@ export const POST = createSmartRouteHandler({
       bodyType: "json",
       body: {
         html: result.data.html,
-        schema: result.data.schema,
         subject: result.data.subject,
         notification_category: result.data.notificationCategory,
       },

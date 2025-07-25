@@ -79,9 +79,14 @@ export default function CodeEditor({
     monaco.languages.typescript.typescriptDefaults.addExtraLib(
       deindent`
         declare module "@stackframe/emails" {
+          import { Scope } from "arktype";
           const Subject: React.FC<{value: string}>;
           const NotificationCategory: React.FC<{value: "Transactional" | "Marketing"}>;
-          type User = { displayName: string };
+          const type: Scope<{
+              StackUser: { 
+                displayName: string | null; 
+              };
+          }>["type"]
         }
       `,
     );

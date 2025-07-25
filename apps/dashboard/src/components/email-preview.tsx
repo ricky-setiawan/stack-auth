@@ -7,16 +7,16 @@ import ResizableContainer from './resizable-container';
 
 class EmailPreviewErrorBoundary extends Component<
   { children: ReactNode },
-  { hasError: boolean }
+  { hasError: boolean, errorMessage: string | null }
 > {
   constructor(props: { children: ReactNode }) {
     super(props);
-    this.state = { hasError: false };
+    this.state = { hasError: false, errorMessage: null };
   }
 
   static getDerivedStateFromError(error: Error) {
     if (error instanceof KnownErrors.EmailRenderingError) {
-      return { hasError: true };
+      return { hasError: true, errorMessage: error.message };
     }
     throw error;
   }
@@ -28,8 +28,8 @@ class EmailPreviewErrorBoundary extends Component<
           <Typography type="h3" className="mb-2" variant="destructive">
             Email Rendering Error
           </Typography>
-          <Typography variant="secondary">
-            Please check your theme / template source code.
+          <Typography variant="secondary" className="text-center text-sm">
+            {this.state.errorMessage}
           </Typography>
         </div>
       );

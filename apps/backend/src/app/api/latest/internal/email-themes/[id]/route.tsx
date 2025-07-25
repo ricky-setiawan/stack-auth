@@ -74,7 +74,7 @@ export const PATCH = createSmartRouteHandler({
       throw new StatusError(404, "No theme found with given id");
     }
     const theme = themeList[id];
-    const result = await renderEmailWithTemplate(previewTemplateSource, body.tsx_source);
+    const result = await renderEmailWithTemplate(previewTemplateSource, body.tsx_source, {}, true);
     if (result.status === "error") {
       throw new KnownErrors.EmailRenderingError(result.error);
     }

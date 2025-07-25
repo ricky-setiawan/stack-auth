@@ -320,6 +320,7 @@ export async function sendEmailFromTemplate(options: {
   const variables = filterUndefined({
     projectDisplayName: options.tenancy.project.display_name,
     userDisplayName: options.user?.display_name || undefined,
+    user: { displayName: options.user?.display_name ?? null },
     ...filterUndefined(options.extraVariables),
   });
 

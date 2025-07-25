@@ -1,6 +1,7 @@
 import { overrideEnvironmentConfigOverride } from "@/lib/config";
 import { globalPrismaClient } from "@/prisma-client";
 import { createSmartRouteHandler } from "@/route-handlers/smart-route-handler";
+import { deindent } from "@stackframe/stack-shared/dist/utils/strings";
 import { adaptSchema, templateThemeIdSchema, yupArray, yupNumber, yupObject, yupString } from "@stackframe/stack-shared/dist/schema-fields";
 import { generateUuid } from "@stackframe/stack-shared/dist/utils/uuids";
 
@@ -66,23 +67,24 @@ export const POST = createSmartRouteHandler({
   }),
   async handler({ body, auth: { tenancy } }) {
     const id = generateUuid();
-    const defaultTemplateSource = `import { Container } from "@react-email/components";
-import { Subject, NotificationCategory } from "@stackframe/emails";
-import { type } from "arktype";
+    const defaultTemplateSource = deindent`
+      import { Container } from "@react-email/components";
+      import { Subject, NotificationCategory, type } from "@stackframe/emails";
 
-export const schema = type({
-  projectDisplayName: "string",
-});
+      export const schema = type({
+        user: "StackUser"
+      });
 
-export function EmailTemplate({ projectDisplayName }: typeof schema.infer) {
-  return (
-    <Container>
-      <Subject value="${body.display_name}" />
-      <NotificationCategory value="Transactional" />
-      <div className="font-bold">${body.display_name} for {projectDisplayName}</div>
-    </Container>
-  );
-}`;
+      export function EmailTemplate({ user }: typeof schema.infer) {
+        return (
+          <Container>
+            <Subject value={\`Hello \${user.displayName}!\`} />
+            <NotificationCategory value="Transactional" />
+            <div className="font-bold">Hi {user.displayName}!</div>
+          </Container>
+        );
+      }
+    `;
 
     await overrideEnvironmentConfigOverride({
       tx: globalPrismaClient,
