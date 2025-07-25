@@ -70,6 +70,8 @@ export type StackAdminApp<HasTokenStore extends boolean = boolean, ProjectId ext
     createEmailTheme(displayName: string): Promise<{ id: string }>,
     updateEmailTheme(id: string, tsxSource: string): Promise<void>,
 
+    createEmailTemplate(displayName: string): Promise<{ id: string }>,
+
     sendChatMessage(
       threadId: string,
       contextType: "email-theme" | "email-template",

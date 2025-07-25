@@ -455,6 +455,12 @@ export class _StackAdminAppImplIncomplete<HasTokenStore extends boolean, Project
     return result;
   }
 
+  async createEmailTemplate(displayName: string): Promise<{ id: string }> {
+    const result = await this._interface.createEmailTemplate(displayName);
+    await this._adminEmailTemplatesCache.refresh([]);
+    return result;
+  }
+
   async getEmailPreview(options: { themeId?: string | null | false, themeTsxSource?: string, templateId?: string, templateTsxSource?: string }): Promise<string> {
     return (await this._interface.renderEmailPreview(options)).html;
   }

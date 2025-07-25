@@ -1,11 +1,17 @@
 "use client";
 
+import { FormDialog } from "@/components/form-dialog";
+import { InputField } from "@/components/form-fields";
 import { useRouter } from "@/components/router";
 import { ActionDialog, Alert, AlertDescription, AlertTitle, Button, Card, Typography } from "@stackframe/stack-ui";
 import { AlertCircle } from "lucide-react";
 import { useState } from "react";
+import * as yup from "yup";
 import { PageLayout } from "../page-layout";
 import { useAdminApp } from "../use-admin-app";
+import Link from "next/link";
+
+
 
 export default function PageClient() {
   const stackAdminApp = useAdminApp();
@@ -16,7 +22,12 @@ export default function PageClient() {
   const [sharedSmtpWarningDialogOpen, setSharedSmtpWarningDialogOpen] = useState<string | null>(null);
 
   return (
-    <PageLayout title="Email Templates" description="Customize the emails sent to your users">
+    <PageLayout
+      title="Email Templates"
+      description="Customize the emails sent to your users"
+      actions={<NewTemplateButton />}
+    >
+      <div className="h-2 w-full" />
       {emailConfig?.type === 'shared' && <Alert variant="default">
         <AlertCircle className="h-4 w-4" />
         <AlertTitle>Warning</AlertTitle>
@@ -31,18 +42,19 @@ export default function PageClient() {
               {template.displayName}
             </Typography>
             <div className="flex justify-start items-end gap-2">
-              <Button
-                variant='secondary'
-                onClick={() => {
+              <Link
+                href={`email-templates/${template.id}`}
+                onClick={(e) => {
                   if (emailConfig?.type === 'shared') {
                     setSharedSmtpWarningDialogOpen(template.id);
-                  } else {
-                    router.push(`email-templates/${template.id}`);
+                    e.preventDefault();
                   }
                 }}
               >
-                Edit Template
-              </Button>
+                <Button variant='secondary'>
+                  Edit
+                </Button>
+              </Link>
             </div>
           </div>
         </Card>
@@ -69,5 +81,35 @@ export default function PageClient() {
         </Alert>
       </ActionDialog>
     </PageLayout>
+  );
+}
+
+function NewTemplateButton() {
+  const stackAdminApp = useAdminApp();
+  const router = useRouter();
+
+  const handleCreateNewTemplate = async (values: { name: string }) => {
+    const { id } = await stackAdminApp.createEmailTemplate(values.name);
+    router.push(`email-templates/${id}`);
+  };
+
+  return (
+    <FormDialog
+      title="New Template"
+      trigger={<Button>New Template</Button>}
+      onSubmit={handleCreateNewTemplate}
+      formSchema={yup.object({
+        name: yup.string().defined(),
+      })}
+      render={(form) => (
+        <InputField
+          control={form.control}
+          name="name"
+          label="Template Name"
+          placeholder="Enter template name"
+          required
+        />
+      )}
+    />
   );
 }
