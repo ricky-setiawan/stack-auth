@@ -82,11 +82,15 @@ export default function CodeEditor({
           import { Scope } from "arktype";
           const Subject: React.FC<{value: string}>;
           const NotificationCategory: React.FC<{value: "Transactional" | "Marketing"}>;
-          const type: Scope<{
-              StackUser: { 
-                displayName: string | null; 
-              };
-          }>["type"]
+          type Props<T> = {
+            variables: T;
+            project: {
+              displayName: string;
+            };
+            user: {
+              displayName: string | null;
+            };
+          };
         }
       `,
     );

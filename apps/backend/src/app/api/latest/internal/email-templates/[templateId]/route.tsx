@@ -1,10 +1,10 @@
 import { overrideEnvironmentConfigOverride } from "@/lib/config";
+import { getActiveEmailTheme, renderEmailWithTemplate } from "@/lib/email-rendering";
 import { globalPrismaClient } from "@/prisma-client";
 import { createSmartRouteHandler } from "@/route-handlers/smart-route-handler";
-import { adaptSchema, yupNumber, yupObject, yupString, templateThemeIdSchema } from "@stackframe/stack-shared/dist/schema-fields";
-import { StatusError } from "@stackframe/stack-shared/dist/utils/errors";
-import { getActiveEmailTheme, renderEmailWithTemplate } from "@/lib/email-rendering";
 import { KnownErrors } from "@stackframe/stack-shared/dist/known-errors";
+import { adaptSchema, templateThemeIdSchema, yupNumber, yupObject, yupString } from "@stackframe/stack-shared/dist/schema-fields";
+import { StatusError } from "@stackframe/stack-shared/dist/utils/errors";
 
 
 export const PATCH = createSmartRouteHandler({
@@ -40,7 +40,10 @@ export const PATCH = createSmartRouteHandler({
       throw new StatusError(StatusError.NotFound, "No template found with given id");
     }
     const theme = getActiveEmailTheme(tenancy);
-    const result = await renderEmailWithTemplate(body.tsx_source, theme.tsxSource, { projectDisplayName: tenancy.project.display_name }, true);
+    const result = await renderEmailWithTemplate(body.tsx_source, theme.tsxSource, {
+      variables: { projectDisplayName: tenancy.project.display_name },
+      previewMode: true,
+    });
     if (result.status === "error") {
       throw new KnownErrors.EmailRenderingError(result.error);
     }

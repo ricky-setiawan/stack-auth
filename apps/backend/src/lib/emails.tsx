@@ -1,5 +1,6 @@
 import { getPrismaClientForTenancy } from '@/prisma-client';
 import { traceSpan } from '@/utils/telemetry';
+import { DEFAULT_TEMPLATE_IDS } from '@stackframe/stack-shared/dist/helpers/emails';
 import { UsersCrud } from '@stackframe/stack-shared/dist/interface/crud/users';
 import { getEnvVariable } from '@stackframe/stack-shared/dist/utils/env';
 import { StackAssertionError, StatusError, captureError } from '@stackframe/stack-shared/dist/utils/errors';
@@ -7,9 +8,8 @@ import { filterUndefined, omit, pick } from '@stackframe/stack-shared/dist/utils
 import { runAsynchronously, wait } from '@stackframe/stack-shared/dist/utils/promises';
 import { Result } from '@stackframe/stack-shared/dist/utils/results';
 import nodemailer from 'nodemailer';
-import { Tenancy, getTenancy } from './tenancies';
 import { getEmailThemeForTemplate, renderEmailWithTemplate } from './email-rendering';
-import { DEFAULT_TEMPLATE_IDS } from '@stackframe/stack-shared/dist/helpers/emails';
+import { Tenancy, getTenancy } from './tenancies';
 
 
 export function getDefaultEmailTemplate(tenancy: Tenancy, type: keyof typeof DEFAULT_TEMPLATE_IDS) {
@@ -317,19 +317,21 @@ export async function sendEmailFromTemplate(options: {
 }) {
   const template = getDefaultEmailTemplate(options.tenancy, options.templateType);
   const themeSource = getEmailThemeForTemplate(options.tenancy, template.themeId);
-  const variables = filterUndefined({
-    projectDisplayName: options.tenancy.project.display_name,
-    userDisplayName: options.user?.display_name || undefined,
-    user: { displayName: options.user?.display_name ?? null },
-    ...filterUndefined(options.extraVariables),
-  });
 
-  const result = await renderEmailWithTemplate(template.tsxSource, themeSource, variables);
+  const result = await renderEmailWithTemplate(
+    template.tsxSource,
+    themeSource,
+    {
+      user: { displayName: options.user?.display_name ?? null },
+      project: { displayName: options.tenancy.project.display_name },
+      variables: filterUndefined(options.extraVariables),
+    },
+  );
   if (result.status === 'error') {
     throw new StackAssertionError("Failed to render email template", {
       template: template,
       theme: themeSource,
-      variables,
+      variables: options.extraVariables,
     });
   }
 

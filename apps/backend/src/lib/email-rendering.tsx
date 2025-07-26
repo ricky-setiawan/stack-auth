@@ -48,10 +48,25 @@ export function createTemplateComponentFromHtml(
 export async function renderEmailWithTemplate(
   templateComponent: string,
   themeComponent: string,
-  variables: Record<string, any> = {},
-  previewMode: boolean = false,
+  options: {
+    user?: { displayName: string | null },
+    project?: { displayName: string },
+    variables?: Record<string, any>,
+    previewMode?: boolean,
+  },
 ): Promise<Result<{ html: string, text: string, subject?: string, notificationCategory?: string }, string>> {
   const apiKey = getEnvVariable("STACK_FREESTYLE_API_KEY");
+  const variables = options.variables ?? {};
+  const previewMode = options.previewMode ?? false;
+  const user = (previewMode && !options.user) ? { displayName: "John Doe" } : options.user;
+  const project = (previewMode && !options.project) ? { displayName: "My Project" } : options.project;
+  if (!user) {
+    throw new StackAssertionError("User is required when not in preview mode", { user, project, variables });
+  }
+  if (!project) {
+    throw new StackAssertionError("Project is required when not in preview mode", { user, project, variables });
+  }
+
   if (["development", "test"].includes(getNodeEnvironment()) && apiKey === "mock_stack_freestyle_key") {
     return Result.ok({
       html: `<div>Mock api key detected, \n\ntemplateComponent: ${templateComponent}\n\nthemeComponent: ${themeComponent}\n\n variables: ${JSON.stringify(variables)}</div>`,
@@ -72,19 +87,18 @@ export async function renderEmailWithTemplate(
       import { type } from "arktype";
       import { findComponentValue } from "./utils.tsx";
       import * as TemplateModule from "./template.tsx";
-      const { schema, EmailTemplate } = TemplateModule;
+      const { variablesSchema, EmailTemplate } = TemplateModule;
       import { EmailTheme } from "./theme.tsx";
 
       export const renderAll = async () => {
-        const variables = {
-          ${previewMode ? "...(EmailTemplate.PreviewProps || {})," : ""}
+        const variables = variablesSchema({
+          ${previewMode ? "...(EmailTemplate.PreviewVariables || {})," : ""}
           ...(${JSON.stringify(variables)}),
+        })
+        if (variables instanceof type.errors) {
+          throw new Error(variables.summary)
         }
-        const props = schema(variables)
-        if (props instanceof type.errors) {
-          throw new Error(props.summary)
-        }
-        const EmailTemplateWithProps  = <EmailTemplate {...props} />;
+        const EmailTemplateWithProps  = <EmailTemplate variables={variables} user={${JSON.stringify(user)}} project={${JSON.stringify(project)}} />;
         const Email = <EmailTheme>{EmailTemplateWithProps}</EmailTheme>;
         return {
           html: await render(Email),
@@ -170,17 +184,9 @@ export function findComponentValue(element, targetStackComponent) {
 }`;
 
 const stackframeEmailsPackage = deindent`
-  import { scope } from "arktype";
-
   export const Subject = (props) => null;
   Subject.__stackComponent = "Subject";
 
   export const NotificationCategory = (props) => null;
   NotificationCategory.__stackComponent = "NotificationCategory";
-
-  export const type = scope({
-    StackUser: {
-      displayName: "string | null",
-    },
-  }).type;
 `;

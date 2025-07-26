@@ -1,8 +1,8 @@
 import { overrideEnvironmentConfigOverride } from "@/lib/config";
-import { globalPrismaClient } from "@/prisma-client";
 import { renderEmailWithTemplate } from "@/lib/email-rendering";
-import { previewTemplateSource } from "@stackframe/stack-shared/dist/helpers/emails";
+import { globalPrismaClient } from "@/prisma-client";
 import { createSmartRouteHandler } from "@/route-handlers/smart-route-handler";
+import { previewTemplateSource } from "@stackframe/stack-shared/dist/helpers/emails";
 import { KnownErrors } from "@stackframe/stack-shared/dist/known-errors";
 import { adaptSchema, yupNumber, yupObject, yupString } from "@stackframe/stack-shared/dist/schema-fields";
 import { StatusError } from "@stackframe/stack-shared/dist/utils/errors";
@@ -74,7 +74,11 @@ export const PATCH = createSmartRouteHandler({
       throw new StatusError(404, "No theme found with given id");
     }
     const theme = themeList[id];
-    const result = await renderEmailWithTemplate(previewTemplateSource, body.tsx_source, {}, true);
+    const result = await renderEmailWithTemplate(
+      previewTemplateSource,
+      body.tsx_source,
+      { previewMode: true },
+    );
     if (result.status === "error") {
       throw new KnownErrors.EmailRenderingError(result.error);
     }
