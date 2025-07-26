@@ -88,7 +88,7 @@ type EnhancedAPIPageProps = {
 type RequestState = {
   parameters: Record<string, unknown>,
   headers: Record<string, string>,
-  body: string,
+  bodyFields: Record<string, unknown>, // Changed from 'body: string' to individual fields
   response: {
     status?: number,
     data?: unknown,
@@ -124,7 +124,7 @@ export function EnhancedAPIPage({ document, operations, description }: EnhancedA
   const [requestState, setRequestState] = useState<RequestState>({
     parameters: {},
     headers: {},
-    body: '{}',
+    bodyFields: {}, // Changed from body: '{}'
     response: {
       loading: false,
     },
@@ -134,7 +134,6 @@ export function EnhancedAPIPage({ document, operations, description }: EnhancedA
   useEffect(() => {
     setRequestState(prev => ({ ...prev, headers: sharedHeaders }));
   }, [sharedHeaders]);
-
 
   // Helper function to generate example data from OpenAPI schema
   const generateExampleFromSchema = useCallback((schema: OpenAPISchema, spec?: OpenAPISpec): unknown => {
@@ -210,7 +209,7 @@ export function EnhancedAPIPage({ document, operations, description }: EnhancedA
     return "";
   }, []);
 
-  // Auto-populate request body based on OpenAPI schema
+  // Auto-populate request body fields based on OpenAPI schema
   useEffect(() => {
     if (operations.length > 0 && spec) {
       const firstOperation = operations[0];
@@ -218,16 +217,21 @@ export function EnhancedAPIPage({ document, operations, description }: EnhancedA
 
       if (operation.requestBody?.content['application/json']?.schema) {
         const { schema: jsonSchema } = operation.requestBody.content['application/json'];
-        //console.log('OpenAPI Schema for', firstOperation.path, ':', jsonSchema);
-        const exampleBody = generateExampleFromSchema(jsonSchema, spec);
-        //console.log('Generated example body:', exampleBody);
-        setRequestState(prev => ({
-          ...prev,
-          body: JSON.stringify(exampleBody, null, 2)
-        }));
+        // Initialize body fields from schema properties
+        if (jsonSchema.type === 'object' && jsonSchema.properties) {
+          const initialFields: Record<string, unknown> = {};
+          Object.entries(jsonSchema.properties).forEach(([key, prop]: [string, OpenAPISchema]) => {
+            if (prop.example !== undefined) {
+              initialFields[key] = prop.example;
+            } else {
+              initialFields[key] = '';
+            }
+          });
+          setRequestState(prev => ({ ...prev, bodyFields: initialFields }));
+        }
       }
     }
-  }, [spec, operations, generateExampleFromSchema]);
+  }, [spec, operations]);
 
   // Load OpenAPI specification
   useEffect(() => {
@@ -304,8 +308,15 @@ export function EnhancedAPIPage({ document, operations, description }: EnhancedA
         headers: filteredHeaders,
       };
 
-      if (['POST', 'PUT', 'PATCH'].includes(method.toUpperCase()) && requestState.body) {
-        requestOptions.body = requestState.body;
+      // Build request body from individual fields
+      if (['POST', 'PUT', 'PATCH'].includes(method.toUpperCase()) && Object.keys(requestState.bodyFields).length > 0) {
+        // Filter out empty values and build JSON body
+        const bodyData = Object.fromEntries(
+          Object.entries(requestState.bodyFields).filter(([, value]) => value !== '' && value !== undefined)
+        );
+        if (Object.keys(bodyData).length > 0) {
+          requestOptions.body = JSON.stringify(bodyData);
+        }
       }
 
       const response = await fetch(url, requestOptions);
@@ -344,7 +355,7 @@ export function EnhancedAPIPage({ document, operations, description }: EnhancedA
         }
       }));
     }
-  }, [spec, requestState.parameters, requestState.headers, requestState.body, reportError]);
+  }, [spec, requestState.parameters, requestState.headers, requestState.bodyFields, reportError]); // Changed from requestState.body
 
   if (loading) {
     return (
@@ -477,9 +488,14 @@ function ModernAPIPlayground({
       }
     });
 
-    // Add body for POST/PUT/PATCH
-    if (['POST', 'PUT', 'PATCH'].includes(method) && requestState.body !== '{}') {
-      curlCommand += ` \\\n  -d '${requestState.body}'`;
+    // Add body for POST/PUT/PATCH - build from fields
+    if (['POST', 'PUT', 'PATCH'].includes(method) && Object.keys(requestState.bodyFields).length > 0) {
+      const bodyData = Object.fromEntries(
+        Object.entries(requestState.bodyFields).filter(([, value]) => value !== '' && value !== undefined)
+      );
+      if (Object.keys(bodyData).length > 0) {
+        curlCommand += ` \\\n  -d '${JSON.stringify(bodyData)}'`;
+      }
     }
 
     return curlCommand;
@@ -520,8 +536,14 @@ function ModernAPIPlayground({
       jsCode += `,\n  headers: ${JSON.stringify(headers, null, 4).replace(/^/gm, '  ')}`;
     }
 
-    if (['POST', 'PUT', 'PATCH'].includes(method) && requestState.body !== '{}') {
-      jsCode += `,\n  body: ${requestState.body}`;
+    // Add body for POST/PUT/PATCH - build from fields
+    if (['POST', 'PUT', 'PATCH'].includes(method) && Object.keys(requestState.bodyFields).length > 0) {
+      const bodyData = Object.fromEntries(
+        Object.entries(requestState.bodyFields).filter(([, value]) => value !== '' && value !== undefined)
+      );
+      if (Object.keys(bodyData).length > 0) {
+        jsCode += `,\n  body: ${JSON.stringify(bodyData, null, 2)}`;
+      }
     }
 
     jsCode += `\n});\n\nconst data = await response.json();\nconsole.log(data);`;
@@ -565,9 +587,17 @@ function ModernAPIPlayground({
       pythonCode += `headers = ${JSON.stringify(headers, null, 2).replace(/"/g, "'")}\n`;
     }
 
-    if (['POST', 'PUT', 'PATCH'].includes(method) && requestState.body !== '{}') {
-      pythonCode += `data = ${requestState.body}\n\n`;
-      pythonCode += `response = requests.${method.toLowerCase()}(url${Object.keys(headers).length > 0 ? ', headers=headers' : ''}${requestState.body !== '{}' ? ', json=data' : ''})\n`;
+    // Add body for POST/PUT/PATCH - build from fields
+    if (['POST', 'PUT', 'PATCH'].includes(method) && Object.keys(requestState.bodyFields).length > 0) {
+      const bodyData = Object.fromEntries(
+        Object.entries(requestState.bodyFields).filter(([, value]) => value !== '' && value !== undefined)
+      );
+      if (Object.keys(bodyData).length > 0) {
+        pythonCode += `data = ${JSON.stringify(bodyData)}\n\n`;
+        pythonCode += `response = requests.${method.toLowerCase()}(url${Object.keys(headers).length > 0 ? ', headers=headers' : ''}, json=data)\n`;
+      } else {
+        pythonCode += `\nresponse = requests.${method.toLowerCase()}(url${Object.keys(headers).length > 0 ? ', headers=headers' : ''})\n`;
+      }
     } else {
       pythonCode += `\nresponse = requests.${method.toLowerCase()}(url${Object.keys(headers).length > 0 ? ', headers=headers' : ''})\n`;
     }
@@ -675,12 +705,13 @@ function ModernAPIPlayground({
               />
             )}
 
-            {/* Request Body */}
+            {/* Request Body Fields */}
             {operation.requestBody && (
-              <RequestBodySection
+              <RequestBodyFieldsSection
                 requestBody={operation.requestBody}
-                value={requestState.body}
-                onChange={(body) => setRequestState(prev => ({ ...prev, body }))}
+                spec={spec}
+                values={requestState.bodyFields}
+                onChange={(bodyFields) => setRequestState(prev => ({ ...prev, bodyFields }))}
               />
             )}
           </div>
@@ -822,28 +853,90 @@ function ParametersSection({
   );
 }
 
-// Request Body Section - Clean design
-function RequestBodySection({
+// Request Body Fields Section - styled like parameters
+function RequestBodyFieldsSection({
   requestBody,
-  value,
+  spec,
+  values,
   onChange,
 }: {
   requestBody: OpenAPIOperation['requestBody'],
-  value: string,
-  onChange: (value: string) => void,
+  spec: OpenAPISpec,
+  values: Record<string, unknown>,
+  onChange: (values: Record<string, unknown>) => void,
 }) {
-  if (!requestBody) return null;
+  if (!requestBody?.content['application/json']?.schema) return null;
+
+  const schema = requestBody.content['application/json'].schema;
+
+  // Handle $ref references
+  const resolveSchema = (schema: OpenAPISchema): OpenAPISchema => {
+    if (schema.$ref) {
+      const refPath = schema.$ref.replace('#/', '').split('/');
+      let refSchema: OpenAPISchema | undefined = spec as unknown as OpenAPISchema;
+      for (const part of refPath) {
+        refSchema = (refSchema as Record<string, unknown>)[part] as OpenAPISchema;
+      }
+      return refSchema!;
+    }
+    return schema;
+  };
+
+  const resolvedSchema = resolveSchema(schema);
+
+  // Only handle object schemas with properties
+  if (resolvedSchema.type !== 'object' || !resolvedSchema.properties) {
+    return null;
+  }
 
   return (
-    <div className="space-y-3">
-      <div className="font-semibold text-fd-foreground leading-none">Request Body</div>
-      <textarea
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="Enter JSON request body"
-        rows={8}
-        className="w-full px-3 py-2 border border-fd-border rounded-lg bg-fd-background text-fd-foreground font-mono text-sm focus:outline-none focus:ring-2 focus:ring-fd-primary focus:border-fd-primary"
-      />
+    <div className="space-y-4">
+      <div className="font-semibold text-fd-foreground flex items-center gap-2 leading-none">
+        <Settings className="w-4 h-4" />
+        Request Body
+      </div>
+      <div className="space-y-4">
+        {Object.entries(resolvedSchema.properties).map(([fieldName, fieldSchema]: [string, OpenAPISchema]) => {
+          const resolvedFieldSchema = resolveSchema(fieldSchema);
+          const isRequired = resolvedSchema.required?.includes(fieldName);
+
+          return (
+            <div key={fieldName}>
+              {/* Single line with all info */}
+              <div className="flex items-center gap-2 flex-wrap mb-2">
+                <span className="text-sm font-semibold text-fd-foreground leading-none">
+                  {fieldName}
+                </span>
+                <span className="text-xs bg-fd-muted text-fd-muted-foreground px-2 py-0.5 rounded font-mono leading-none">
+                  {resolvedFieldSchema.type || 'unknown'}
+                </span>
+                {isRequired && (
+                  <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded dark:bg-red-900/30 dark:text-red-300 leading-none">
+                    required
+                  </span>
+                )}
+                {resolvedFieldSchema.description && (
+                  <>
+                    <span className="text-fd-muted-foreground">-</span>
+                    <span className="text-xs text-fd-muted-foreground leading-relaxed">
+                      {resolvedFieldSchema.description}
+                    </span>
+                  </>
+                )}
+              </div>
+
+              {/* Input Field */}
+              <input
+                type={resolvedFieldSchema.type === 'number' || resolvedFieldSchema.type === 'integer' ? 'number' : 'text'}
+                placeholder={resolvedFieldSchema.example ? String(resolvedFieldSchema.example) : `Enter ${fieldName}`}
+                value={String(values[fieldName] || '')}
+                onChange={(e) => onChange({ ...values, [fieldName]: e.target.value })}
+                className="w-full px-3 py-2 border border-fd-border rounded-md bg-fd-background text-fd-foreground text-sm focus:outline-none focus:ring-2 focus:ring-fd-primary focus:border-fd-primary"
+              />
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -866,7 +959,11 @@ function ResponsePanel({
   const getExpectedResponseExample = () => {
     try {
       const responses = operation.responses;
-      const successResponse = responses['200'] || responses['201'];
+      // Find first available success response
+      const successCodes = ['200', '201', '202'] as const;
+      const successResponse = successCodes.map(code => responses[code]).find(Boolean);
+      if (!successResponse) return null;
+
       const jsonContent = successResponse.content?.['application/json'];
       const schema = jsonContent?.schema;
 
