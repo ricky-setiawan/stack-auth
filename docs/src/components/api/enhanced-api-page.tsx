@@ -853,6 +853,251 @@ function ParametersSection({
   );
 }
 
+// Response Schema Section - styled like parameters but read-only
+function ResponseSchemaSection({
+  operation,
+  spec,
+}: {
+  operation: OpenAPIOperation,
+  spec: OpenAPISpec,
+  generateExample: (schema: OpenAPISchema, spec?: OpenAPISpec) => unknown,
+}) {
+  // Handle $ref references
+  const resolveSchema = (schema: OpenAPISchema): OpenAPISchema => {
+    if (schema.$ref) {
+      const refPath = schema.$ref.replace('#/', '').split('/');
+      let refSchema: OpenAPISchema | undefined = spec as unknown as OpenAPISchema;
+      for (const part of refPath) {
+        refSchema = (refSchema as Record<string, unknown>)[part] as OpenAPISchema;
+      }
+      return refSchema!;
+    }
+    return schema;
+  };
+
+  // Get response schema
+  const getResponseSchema = () => {
+    try {
+      const responses = operation.responses;
+      // Find first available success response
+      const successCodes = ['200', '201', '202'] as const;
+      const successResponse = successCodes.map(code => responses[code]).find(Boolean);
+      if (!successResponse) return null;
+
+      const jsonContent = successResponse.content?.['application/json'];
+      return jsonContent?.schema;
+    } catch (error) {
+      console.error('Error getting response schema:', error);
+      return null;
+    }
+  };
+
+  // Render schema field recursively
+  const renderSchemaField = (
+    fieldName: string,
+    fieldSchema: OpenAPISchema,
+    isRequired: boolean = false,
+    depth: number = 0,
+    parentPath: string = ''
+  ): React.ReactNode => {
+    const resolvedFieldSchema = resolveSchema(fieldSchema);
+    const fullPath = parentPath ? `${parentPath}.${fieldName}` : fieldName;
+    const indentClass = depth > 0 ? `ml-${depth * 4}` : '';
+
+    // Get type display
+    const getTypeDisplay = (schema: OpenAPISchema): string => {
+      if (schema.type === 'array' && schema.items) {
+        const itemType = schema.items.type || 'object';
+        return `array<${itemType}>`;
+      }
+      return schema.type || 'unknown';
+    };
+
+    // Use consistent down-right arrow for all nested items
+    const ArrowIcon = depth > 0 ? '↳' : '';
+
+    return (
+      <div key={fullPath} className={`${indentClass}`}>
+        {/* Field info line */}
+        <div className="flex items-baseline gap-2 flex-wrap leading-normal">
+          {ArrowIcon && (
+            <span className="text-fd-muted-foreground text-sm select-none font-mono leading-none">
+              {ArrowIcon}
+            </span>
+          )}
+          <span className="text-sm font-semibold text-fd-foreground">
+            {fieldName}
+          </span>
+          <span className="text-xs bg-fd-muted text-fd-muted-foreground px-2 py-0.5 rounded font-mono">
+            {getTypeDisplay(resolvedFieldSchema)}
+          </span>
+          {isRequired && (
+            <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded dark:bg-red-900/30 dark:text-red-300">
+              required
+            </span>
+          )}
+          {/* Show format if available */}
+          {resolvedFieldSchema.format && (
+            <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded dark:bg-purple-900/30 dark:text-purple-300">
+              {resolvedFieldSchema.format}
+            </span>
+          )}
+          {/* Show enum values if available */}
+          {resolvedFieldSchema.enum && (
+            <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded dark:bg-yellow-900/30 dark:text-yellow-300">
+              enum: {resolvedFieldSchema.enum.map(String).join(' | ')}
+            </span>
+          )}
+          {/* Show constraints */}
+          {(resolvedFieldSchema.minLength !== undefined || resolvedFieldSchema.maxLength !== undefined) && (
+            <span className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded dark:bg-gray-900/30 dark:text-gray-300">
+              {resolvedFieldSchema.minLength !== undefined && `min: ${resolvedFieldSchema.minLength}`}
+              {resolvedFieldSchema.minLength !== undefined && resolvedFieldSchema.maxLength !== undefined && ', '}
+              {resolvedFieldSchema.maxLength !== undefined && `max: ${resolvedFieldSchema.maxLength}`}
+            </span>
+          )}
+          {(resolvedFieldSchema.minimum !== undefined || resolvedFieldSchema.maximum !== undefined) && (
+            <span className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded dark:bg-gray-900/30 dark:text-gray-300">
+              {resolvedFieldSchema.minimum !== undefined && `min: ${resolvedFieldSchema.minimum}`}
+              {resolvedFieldSchema.minimum !== undefined && resolvedFieldSchema.maximum !== undefined && ', '}
+              {resolvedFieldSchema.maximum !== undefined && `max: ${resolvedFieldSchema.maximum}`}
+            </span>
+          )}
+          {/* Show pattern if available */}
+          {resolvedFieldSchema.pattern && (
+            <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded dark:bg-indigo-900/30 dark:text-indigo-300 font-mono">
+              pattern: {resolvedFieldSchema.pattern}
+            </span>
+          )}
+          {resolvedFieldSchema.example !== undefined && (
+            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded dark:bg-blue-900/30 dark:text-blue-300 font-mono">
+              {String(resolvedFieldSchema.example)}
+            </span>
+          )}
+          {resolvedFieldSchema.description && (
+            <span className="text-xs text-fd-muted-foreground">
+              - {resolvedFieldSchema.description}
+            </span>
+          )}
+        </div>
+
+        {/* Handle nested structures */}
+        {resolvedFieldSchema.type === 'array' && resolvedFieldSchema.items ? (
+          <div className="mt-2 ml-4">
+            {resolvedFieldSchema.items.type === 'object' && resolvedFieldSchema.items.properties ? (
+              <div className="space-y-2">
+                {Object.entries(resolvedFieldSchema.items.properties).map(([itemFieldName, itemFieldSchema]) => {
+                  const itemRequired = resolvedFieldSchema.items?.required?.includes(itemFieldName) || false;
+                  return renderSchemaField(itemFieldName, itemFieldSchema as OpenAPISchema, itemRequired, depth + 1, fullPath);
+                })}
+              </div>
+            ) : (
+              // Simple array items
+              <div className="flex items-baseline gap-2 flex-wrap leading-normal text-sm text-fd-muted-foreground">
+                <span className="text-fd-muted-foreground select-none font-mono leading-none">↳</span>
+                <span>Items:</span>
+                <span className="text-xs bg-fd-muted text-fd-muted-foreground px-2 py-0.5 rounded font-mono">
+                  {resolvedFieldSchema.items.type || 'unknown'}
+                </span>
+                {resolvedFieldSchema.items.example !== undefined && (
+                  <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded dark:bg-blue-900/30 dark:text-blue-300 font-mono">
+                    {String(resolvedFieldSchema.items.example)}
+                  </span>
+                )}
+                {resolvedFieldSchema.items.description && (
+                  <span className="text-xs text-fd-muted-foreground">
+                    - {resolvedFieldSchema.items.description}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        ) : resolvedFieldSchema.type === 'object' && resolvedFieldSchema.properties ? (
+          <div className="mt-2 ml-4 space-y-2">
+            {Object.entries(resolvedFieldSchema.properties).map(([nestedFieldName, nestedFieldSchema]) => {
+              const nestedRequired = resolvedFieldSchema.required?.includes(nestedFieldName) || false;
+              return renderSchemaField(nestedFieldName, nestedFieldSchema as OpenAPISchema, nestedRequired, depth + 1, fullPath);
+            })}
+          </div>
+        ) : null}
+      </div>
+    );
+  };
+
+  const responseSchema = getResponseSchema();
+  if (!responseSchema) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <div className="w-12 h-12 rounded-full bg-fd-muted/30 flex items-center justify-center mb-4">
+          <Zap className="w-6 h-6 text-fd-muted-foreground" />
+        </div>
+        <p className="text-fd-muted-foreground text-center text-sm leading-relaxed m-0">
+          No response schema available
+        </p>
+      </div>
+    );
+  }
+
+  const resolvedSchema = resolveSchema(responseSchema);
+
+  // Check if schema is empty (like {}) or has no meaningful content
+  const isEmpty = !resolvedSchema.type && !resolvedSchema.properties && Object.keys(resolvedSchema).length === 0;
+  const hasNoProperties = resolvedSchema.type === 'object' && (!resolvedSchema.properties || Object.keys(resolvedSchema.properties).length === 0);
+
+  if (isEmpty || hasNoProperties) {
+    return (
+      <div className="flex items-center gap-3">
+        <span className="inline-flex items-center px-3 py-1 rounded-md bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 font-mono font-bold text-xs leading-none">
+          200
+        </span>
+        <span className="text-sm text-fd-muted-foreground">
+          Success response (no body)
+        </span>
+      </div>
+    );
+  }
+
+  // Handle non-object schemas or simple types
+  if (resolvedSchema.type !== 'object' || !resolvedSchema.properties) {
+    return (
+      <div className="space-y-4">
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <span className="inline-flex items-center px-3 py-1 rounded-md bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 font-mono font-bold text-xs leading-none">
+              200
+            </span>
+            <span className="text-sm text-fd-muted-foreground">Expected Response</span>
+          </div>
+          <div className="h-px bg-fd-border"></div>
+        </div>
+        <div>
+          {renderSchemaField('Response', resolvedSchema, false, 0)}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <div className="flex items-center gap-3 mb-2">
+          <span className="inline-flex items-center px-3 py-1 rounded-md bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 font-mono font-bold text-xs leading-none">
+            200
+          </span>
+          <span className="text-sm text-fd-muted-foreground">Expected Response</span>
+        </div>
+        <div className="h-px bg-fd-border"></div>
+      </div>
+      <div className="space-y-3">
+        {Object.entries(resolvedSchema.properties).map(([fieldName, fieldSchema]) => {
+          const isRequired = resolvedSchema.required?.includes(fieldName) || false;
+          return renderSchemaField(fieldName, fieldSchema as OpenAPISchema, isRequired, 0);
+        })}
+      </div>
+    </div>
+  );
+}
+
 // Request Body Fields Section - styled like parameters
 function RequestBodyFieldsSection({
   requestBody,
@@ -955,29 +1200,6 @@ function ResponsePanel({
 }) {
   const [activeTab, setActiveTab] = useState<'expected' | 'live'>('expected');
 
-  // Get expected response schema
-  const getExpectedResponseExample = () => {
-    try {
-      const responses = operation.responses;
-      // Find first available success response
-      const successCodes = ['200', '201', '202'] as const;
-      const successResponse = successCodes.map(code => responses[code]).find(Boolean);
-      if (!successResponse) return null;
-
-      const jsonContent = successResponse.content?.['application/json'];
-      const schema = jsonContent?.schema;
-
-      if (schema) {
-        return generateExample(schema, spec);
-      }
-      return null;
-    } catch (error) {
-      console.error('Error generating response example:', error);
-      return null;
-    }
-  };
-
-  const expectedExample = getExpectedResponseExample();
 
   // Auto-switch to live tab when request starts
   if (response.loading && activeTab === 'expected') {
@@ -1036,25 +1258,11 @@ function ResponsePanel({
         {/* Expected Response Tab */}
         {activeTab === 'expected' && (
           <div>
-            {expectedExample ? (
-              <div>
-                <div className="text-sm font-semibold text-fd-foreground mb-2 leading-none">Expected Response (200 OK)</div>
-                <div className="bg-fd-muted rounded-lg p-3 border">
-                  <pre className="text-sm font-mono overflow-auto max-h-96 text-fd-foreground whitespace-pre-wrap break-words m-0">
-                    {JSON.stringify(expectedExample, null, 2)}
-                  </pre>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-12">
-                <div className="w-12 h-12 rounded-full bg-fd-muted/30 flex items-center justify-center mb-4">
-                  <Zap className="w-6 h-6 text-fd-muted-foreground" />
-                </div>
-                <p className="text-fd-muted-foreground text-center text-sm leading-relaxed m-0">
-                  No response schema available
-                </p>
-              </div>
-            )}
+            <ResponseSchemaSection
+              operation={operation}
+              spec={spec}
+              generateExample={generateExample}
+            />
           </div>
         )}
 
